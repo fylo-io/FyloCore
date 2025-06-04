@@ -21,7 +21,6 @@ import userRoutes from './routes/userRoutes';
 import { handleErrors } from './utils/errorHandler';
 import { logInfo } from './utils/logger';
 import { setupSwagger } from './utils/swagger';
-import { connectWebSocket } from './utils/webSocketClient';
 
 /**
  * @swagger
@@ -119,9 +118,6 @@ const io = new SocketIOServer(server, {
 // Initialize Socket.IO namespaces
 handleGraphNamespace(io.of('/graph'));
 handleUsersNamespace(io.of('/users'));
-
-// Create Web Socket connection
-connectWebSocket();
 
 // Start server with error handling
 server.listen(PORT, (err?: Error) => {

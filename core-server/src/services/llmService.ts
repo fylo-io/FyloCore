@@ -3,50 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { v4 as uuidv4 } from 'uuid';
 
 import { logInfo } from '../utils/logger';
-
-// Types for graph elements
-export interface GraphNode {
-  id: string;
-  graph_id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: {
-    id: string; // This should be the human-readable title
-    description: string;
-    node_type: string;
-    internal_id?: string; // For snake_case identifier mapping
-    is_moving?: boolean;
-    picker_color?: string;
-    is_root?: boolean;
-    document_content?: string;
-    comments?: any[];
-    citation?: Record<string, any>;
-    citations?: any[];
-    confidence_score?: number;
-  };
-  measured?: {
-    width: number;
-    height: number;
-  };
-  selected?: boolean;
-  dragging?: boolean;
-  hidden?: boolean;
-  created_at?: Date | string;
-}
-
-export interface GraphEdge {
-  id: string;
-  graph_id: string;
-  type: string;
-  source: string;
-  target: string;
-  data: {
-    label: string;
-    description: string;
-    comments?: any[];
-  };
-  created_at?: Date;
-}
+import { FyloNode, FyloEdge } from '../types/graph';
 
 // AI Service Configuration
 class LLMService extends EventEmitter {
@@ -58,11 +15,11 @@ class LLMService extends EventEmitter {
   private textBuffer: string = '';
   private currentUUID: string = '';
   private shouldUpdateID: boolean = true;
-  private currentNode: GraphNode | null = null;
-  private currentEdge: GraphEdge | null = null;
+  private currentNode: FyloNode | null = null;
+  private currentEdge: FyloEdge | null = null;
   private labelToId: Map<string, string> = new Map();
   private uuidToId: Map<string, string> = new Map();
-  private edgeList: GraphEdge[] = [];
+  private edgeList: FyloEdge[] = [];
   private isFirstNode: boolean = true;
   private processedEdges: Set<string> = new Set();
   private processedFields: Set<string> = new Set();
@@ -70,7 +27,6 @@ class LLMService extends EventEmitter {
   private nodeCount: number = 0;
   private edgeCount: number = 0;
   private completionTimer: NodeJS.Timeout | null = null;
-  private lastActivity: number = Date.now();
   private extractionProgress: {
     totalTokensReceived: number;
     lastProgressCheck: number;
@@ -81,50 +37,17 @@ class LLMService extends EventEmitter {
     hasReceivedMinimumContent: false
   };
 
-  // Repetition detection for real-time feedback
-  private repetitionTracking: {
-    recentNodeIds: Set<string>;
-    recentEdgeCombinations: Set<string>;
-    repetitionWarnings: number;
-    lastRepetitionCheck: number;
-  } = {
-    recentNodeIds: new Set(),
-    recentEdgeCombinations: new Set(),
-    repetitionWarnings: 0,
-    lastRepetitionCheck: Date.now()
-  };
-
   // Parsing keys for structured data extraction
   private readonly parsingKeys = [
     '(id: ',
     ', node_type: ',
     ', title: ',
     ', description: ',
+    ', citation: ',
     '(source_id: ',
     ', target_id: ',
     ', edge_type: '
   ];
-
-  // Normalized key mapping to handle spacing variations
-  private readonly keyNormalization: { [key: string]: string } = {
-    '(id: ': '(id: ',
-    '(id:': '(id: ',
-    ', node_type: ': ', node_type: ',
-    ', node_type:': ', node_type: ',
-    ', title: ': ', title: ',
-    ', title:': ', title: ',
-    ', description: ': ', description: ',
-    ', description:': ', description: ',
-    '(source_id: ': '(source_id: ',
-    '(source_id:': '(source_id: ',
-    ', target_id: ': ', target_id: ',
-    ', target_id:': ', target_id: ',
-    ', edge_type: ': ', edge_type: ',
-    ', edge_type:': ', edge_type: '
-  };
-
-  // Track processed content to avoid re-processing
-  private processedBufferLength: number = 0;
 
   constructor() {
     super();
@@ -141,7 +64,7 @@ class LLMService extends EventEmitter {
   /**
    * Send message method for backward compatibility with webSocketClient
    */
-  async sendMessage(event: string, payload: { document: string; graph_id: string; type: 'text' | 'pdf' }): Promise<void> {
+  sendMessage = async (event: string, payload: { document: string; graph_id: string; type: 'text' | 'pdf' }): Promise<void> => {
     if (event === 'chat') {
       await this.processChat(payload);
     }
@@ -150,7 +73,7 @@ class LLMService extends EventEmitter {
   /**
    * Process chat message and generate streaming AI response
    */
-  async processChat(payload: { document: string; graph_id: string; type: 'text' | 'pdf' }): Promise<void> {
+  processChat = async (payload: { document: string; graph_id: string; type: 'text' | 'pdf' }): Promise<void> => {
     try {
       logInfo(`Processing chat for graph: ${payload.graph_id}`);
       
@@ -195,149 +118,29 @@ class LLMService extends EventEmitter {
   /**
    * Handle streaming text from AI response
    */
-  private handleStreamingText(text: string, graphId: string): void {
+  handleStreamingText = (text: string, graphId: string): void => {
     // Add debugging for all incoming text
     logInfo(`📥 Streaming text received (${text.length} chars): "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
     
     // Update progress tracking
     this.extractionProgress.totalTokensReceived += text.length;
-    this.lastActivity = Date.now();
-
+    
     this.textBuffer += text;
     logInfo(`📝 Updated textBuffer (${this.textBuffer.length} chars total)`);
-    
-    // Progress quality check every 1000 characters
-    if (this.extractionProgress.totalTokensReceived % 1000 === 0) {
-      this.checkExtractionProgress(graphId);
-    }
-    
-    // Check for repetition patterns every 1500 characters
-    if (this.extractionProgress.totalTokensReceived % 1500 === 0) {
-      this.checkRepetitionPatterns(graphId);
-    }
     
     // Log buffer content every 500 characters for debugging
     if (this.textBuffer.length % 500 === 0 || this.textBuffer.length > 1000) {
       logInfo(`📋 Current textBuffer content: "${this.textBuffer.substring(Math.max(0, this.textBuffer.length - 200))}"`);
     }
 
-    // Only parse new content
-    this.parseStructuredData(graphId, this.textBuffer); 
-    this.processedBufferLength = this.textBuffer.length;
-    
-    // Clean up the buffer if it gets too large
-    if (this.textBuffer.length > 2000) {
-      logInfo(`🗑️ Buffer too large (${this.textBuffer.length} chars), trimming older content`);
-      const oldBufferLength = this.textBuffer.length;
-      this.textBuffer = this.textBuffer.substring(this.textBuffer.length - 1000);
-      
-      // Clear processed fields since we've trimmed the buffer and old content is gone
-      const processedCount = this.processedFields.size;
-      this.processedFields.clear();
-      
-      // Reset processed buffer length tracking
-      this.processedBufferLength = 0;
-      logInfo(`🧹 Cleaned textBuffer from ${oldBufferLength} to ${this.textBuffer.length} chars, cleared ${processedCount} processed fields`);
-    }
-
-    // Emit streaming text to frontend for real-time display
-    this.emit('update_stream', text);
-  }
-
-  /**
-   * Check extraction progress and perform quality checks
-   */
-  private checkExtractionProgress(graphId: string): void {
-    const progress = this.extractionProgress.totalTokensReceived;
-    const lastCheck = this.extractionProgress.lastProgressCheck;
-    const timeElapsed = Date.now() - lastCheck;
-    const tokensPerSecond = progress / timeElapsed * 1000;
-
-    logInfo(`📊 Extraction progress: ${progress} tokens, ${tokensPerSecond} tokens/sec`);
-
-    // Check if we've received minimum content
-    if (progress > 5000 && !this.extractionProgress.hasReceivedMinimumContent) {
-      this.extractionProgress.hasReceivedMinimumContent = true;
-      logInfo('📈 Received minimum content, starting quality checks');
-    }
-
-    // Perform quality checks
-    if (this.extractionProgress.hasReceivedMinimumContent) {
-      // Check node count
-      if (this.nodeCount < 20) {
-        logInfo('⚠️ Very low node count, consider re-processing or adjusting prompts');
-      } else if (this.nodeCount < 40) {
-        logInfo('⚠️ Low node count, aiming for 80+ nodes');
-      }
-
-      // Check edge count
-      if (this.edgeCount < 30) {
-        logInfo('⚠️ Very low edge count, consider re-processing or adjusting prompts');
-      } else if (this.edgeCount < 60) {
-        logInfo('⚠️ Low edge count, aiming for 100+ edges');
-      }
-    }
-
-    // Update last progress check timestamp
-    this.extractionProgress.lastProgressCheck = Date.now();
-  }
-
-  /**
-   * Check for repetition patterns and provide real-time feedback
-   */
-  private checkRepetitionPatterns(graphId: string): void {
-    const now = Date.now();
-    const timeSinceLastCheck = now - this.repetitionTracking.lastRepetitionCheck;
-    
-    // Check every 2 seconds
-    if (timeSinceLastCheck < 2000) return;
-    
-    this.repetitionTracking.lastRepetitionCheck = now;
-    
-    // Calculate repetition rates
-    const totalAttempts = this.processedFields.size;
-    const uniqueNodeIds = this.repetitionTracking.recentNodeIds.size;
-    const uniqueEdgeCombinations = this.repetitionTracking.recentEdgeCombinations.size;
-    
-    logInfo(`🔄 Repetition check: ${totalAttempts} total attempts, ${uniqueNodeIds} unique node IDs, ${uniqueEdgeCombinations} unique edge combinations`);
-    
-    // Detect high repetition rates
-    let repetitionDetected = false;
-    
-    if (totalAttempts > 20 && uniqueNodeIds < totalAttempts * 0.3) {
-      logInfo('🚨 HIGH NODE REPETITION DETECTED - AI is repeating node IDs');
-      repetitionDetected = true;
-    }
-    
-    if (totalAttempts > 20 && uniqueEdgeCombinations < totalAttempts * 0.2) {
-      logInfo('🚨 HIGH EDGE REPETITION DETECTED - AI is repeating edge combinations');
-      repetitionDetected = true;
-    }
-    
-    if (repetitionDetected) {
-      this.repetitionTracking.repetitionWarnings++;
-      
-      // Emit warning to frontend for real-time feedback
-      this.emit('update_stream', graphId, {
-        type: 'repetition_warning',
-        message: `Repetition detected - please generate more diverse content`,
-        warnings: this.repetitionTracking.repetitionWarnings,
-        stats: {
-          totalAttempts,
-          uniqueNodeIds,
-          uniqueEdgeCombinations,
-          repetitionRate: 1 - (uniqueNodeIds + uniqueEdgeCombinations) / (totalAttempts * 2)
-        }
-      });
-      
-      logInfo(`⚠️ Repetition warning #${this.repetitionTracking.repetitionWarnings} emitted to frontend`);
-    }
+    // Parse structured data from the streaming text buffer
+    this.parseStructuredData(graphId, this.textBuffer);
   }
 
   /**
    * Parse and extract structured data from text buffer
    */
-  private parseStructuredData(graphId: string, text: string): void {
+  parseStructuredData = (graphId: string, text: string): void => {
     logInfo(`🔍 Parsing textBuffer for structured data (${text.length} chars)`);
     
     // Track what we've processed in this parsing session
@@ -346,6 +149,10 @@ class LLMService extends EventEmitter {
     // Track processing statistics
     let fieldsProcessed = 0;
     let fieldsSkipped = 0;
+    
+    // Track extraction boundaries for buffer trimming
+    let lastCompleteExtractionEnd = 0;
+    const extractedPositions: number[] = [];
     
     for (const key of this.parsingKeys) {
       let keyIndex = text.indexOf(key);
@@ -380,6 +187,16 @@ class LLMService extends EventEmitter {
             this.addOrUpdateField(key, value, graphId);
             logInfo(`✅ Processed new field: ${processingKey}`);
             fieldsProcessed++;
+            
+            // Track successful extraction position
+            const extractionEndPosition = afterKeyIndex + quotedMatch[0].length;
+            extractedPositions.push(extractionEndPosition);
+            
+            // Check if this completes a node or edge
+            if (this.isCompleteNodeOrEdge(key)) {
+              lastCompleteExtractionEnd = Math.max(lastCompleteExtractionEnd, extractionEndPosition);
+              logInfo(`📍 Marked complete extraction boundary at position ${lastCompleteExtractionEnd}`);
+            }
           } else {
             logInfo(`⚠️ Already processed field: ${processingKey}, skipping`);
             fieldsSkipped++;
@@ -408,6 +225,16 @@ class LLMService extends EventEmitter {
                   this.addOrUpdateField(key, value, graphId);
                   logInfo(`✅ Processed new unquoted field: ${processingKey}`);
                   fieldsProcessed++;
+                  
+                  // Track successful extraction position
+                  const extractionEndPosition = afterKeyIndex + unquotedMatch[0].length;
+                  extractedPositions.push(extractionEndPosition);
+                  
+                  // Check if this completes a node or edge
+                  if (this.isCompleteNodeOrEdge(key)) {
+                    lastCompleteExtractionEnd = Math.max(lastCompleteExtractionEnd, extractionEndPosition);
+                    logInfo(`📍 Marked complete extraction boundary at position ${lastCompleteExtractionEnd}`);
+                  }
                 } else {
                   logInfo(`⚠️ Already processed field: ${processingKey}, skipping`);
                   fieldsSkipped++;
@@ -423,6 +250,9 @@ class LLMService extends EventEmitter {
       }
     }
     
+    // Strategic buffer trimming after extraction
+    this.trimBufferAfterExtraction(lastCompleteExtractionEnd, extractedPositions);
+    
     // Log processing statistics
     const totalFields = fieldsProcessed + fieldsSkipped;
     if (totalFields > 0) {
@@ -432,9 +262,55 @@ class LLMService extends EventEmitter {
   }
 
   /**
+   * Check if a field completion results in a complete node or edge
+   */
+  isCompleteNodeOrEdge = (key: string): boolean => {
+    // Last fields that complete nodes and edges
+    return key === ', citation: ' || key === ', edge_type: ';
+  }
+
+  /**
+   * Strategically trim textBuffer after successful extractions
+   */
+  trimBufferAfterExtraction = (lastCompleteEnd: number, extractedPositions: number[]): void => {
+    if (lastCompleteEnd > 0 && lastCompleteEnd < this.textBuffer.length) {
+      const originalLength = this.textBuffer.length;
+      const trimPosition = lastCompleteEnd;
+      
+      // Find a safe trim position (after complete parentheses)
+      let safeTrimPosition = trimPosition;
+      for (let i = trimPosition; i < Math.min(trimPosition + 50, this.textBuffer.length); i++) {
+        if (this.textBuffer[i] === ')') {
+          safeTrimPosition = i + 1;
+          break;
+        }
+      }
+      
+      // Trim the processed content
+      this.textBuffer = this.textBuffer.substring(safeTrimPosition);
+      
+      logInfo(`✂️ Strategic buffer trim: Removed ${safeTrimPosition} chars (${originalLength} → ${this.textBuffer.length})`);
+      logInfo(`🧹 Buffer now contains: "${this.textBuffer.substring(0, 100)}${this.textBuffer.length > 100 ? '...' : ''}"`);
+      
+      // Clean up processed fields for trimmed content - keep only recent entries
+      const processedCount = this.processedFields.size;
+      if (processedCount > 1000) {
+        this.processedFields.clear();
+        logInfo(`🧼 Cleared processedFields cache (was ${processedCount} entries)`);
+      }
+    } else if (this.textBuffer.length > 3000) {
+      // Fallback: If no complete extractions but buffer is very large, trim conservatively
+      const originalLength = this.textBuffer.length;
+      this.textBuffer = this.textBuffer.substring(this.textBuffer.length - 2000);
+      this.processedFields.clear();
+      logInfo(`🛡️ Fallback buffer trim: ${originalLength} → ${this.textBuffer.length} chars`);
+    }
+  }
+
+  /**
    * Add or update field data for current node/edge
    */
-  private addOrUpdateField(key: string, value: string, graphId: string): void {
+  addOrUpdateField = (key: string, value: string, graphId: string): void => {
     logInfo(`🔧 Processing field - Key: "${key}", Value: "${value}"`);
     
     // Clean value of extra quotes and whitespace
@@ -470,7 +346,7 @@ class LLMService extends EventEmitter {
   /**
    * Process node field data
    */
-  private processNodeField(key: string, value: string, graphId: string): void {
+  processNodeField = (key: string, value: string, graphId: string): void => {
     logInfo(`🏗️ Creating/updating node with key: ${key}, value: ${value}`);
     
     if (!this.currentNode) {
@@ -552,9 +428,6 @@ class LLMService extends EventEmitter {
             this.labelToId.set(this.currentNode.data.internal_id, this.currentNode.id);
             logInfo(`📍 Mapped label "${this.currentNode.data.internal_id}" to UUID "${this.currentNode.id}"`);
             
-            // Track node ID for repetition detection
-            this.repetitionTracking.recentNodeIds.add(this.currentNode.data.internal_id);
-            
             // INCREMENT NODE COUNT HERE
             this.nodeCount++;
             logInfo(`📊 Node count incremented to: ${this.nodeCount}`);
@@ -567,13 +440,21 @@ class LLMService extends EventEmitter {
           this.shouldUpdateID = true;
         }
         break;
+      case ', citation: ':
+        // Create a Citation object from the string value
+        this.currentNode.data.citation = {
+          title: value,
+          ref_id: value
+        };
+        logInfo(`📄 Set node citation: ${value}`);
+        break;
     }
   }
 
   /**
    * Process edge field data
    */
-  private processEdgeField(key: string, value: string, graphId: string): void {
+  processEdgeField = (key: string, value: string, graphId: string): void => {
     logInfo(`🔗 Creating/updating edge with key: ${key}, value: ${value}`);
     
     if (!this.currentEdge) {
@@ -612,10 +493,6 @@ class LLMService extends EventEmitter {
             logInfo(`✅ COMPLETING EDGE: ${JSON.stringify(this.currentEdge, null, 2)}`);
             this.emit('add_edge', { ...this.currentEdge });
             this.edgeCount++;
-            
-            // Track edge combination for repetition detection
-            const edgeCombination = `${this.currentEdge.source}→${this.currentEdge.target}`;
-            this.repetitionTracking.recentEdgeCombinations.add(edgeCombination);
           } else {
             logInfo(`⚠️ Duplicate edge detected, skipping: ${edgeIdentifier}`);
           }
@@ -631,7 +508,7 @@ class LLMService extends EventEmitter {
   /**
    * Finalize and emit node creation
    */
-  private finalizeNode(graphId: string): void {
+  finalizeNode = (graphId: string): void => {
     if (!this.currentNode || !this.currentNode.data.internal_id) {
       return;
     }
@@ -683,8 +560,8 @@ class LLMService extends EventEmitter {
   /**
    * Process pending edges that can now be resolved
    */
-  private processPendingEdges(graphId: string): void {
-    const resolvedEdges: GraphEdge[] = [];
+  processPendingEdges = (graphId: string): void => {
+    const resolvedEdges: FyloEdge[] = [];
     
     this.edgeList.forEach((edge, index) => {
       const sourceId = this.isUUID(edge.source) ? edge.source : this.labelToId.get(edge.source);
@@ -710,7 +587,7 @@ class LLMService extends EventEmitter {
   /**
    * Create empty node template
    */
-  private createEmptyNode(graphId: string): GraphNode {
+  createEmptyNode = (graphId: string): FyloNode => {
     return {
       id: this.currentUUID,
       graph_id: graphId,
@@ -744,7 +621,7 @@ class LLMService extends EventEmitter {
   /**
    * Create empty edge template
    */
-  private createEmptyEdge(graphId: string): GraphEdge {
+  createEmptyEdge = (graphId: string): FyloEdge => {
     return {
       id: this.currentUUID,
       graph_id: graphId,
@@ -763,19 +640,20 @@ class LLMService extends EventEmitter {
   /**
    * Check if field is related to nodes
    */
-  private isNodeField(key: string): boolean {
+  isNodeField = (key: string): boolean => {
     return [
       '(id: ',
       ', node_type: ',
       ', title: ',
       ', description: ',
+      ', citation: ',
     ].includes(key);
   }
 
   /**
    * Check if field is related to edges
    */
-  private isEdgeField(key: string): boolean {
+  isEdgeField = (key: string): boolean => {
     return [
       '(source_id: ',
       ', target_id: ',
@@ -786,7 +664,7 @@ class LLMService extends EventEmitter {
   /**
    * Check if value is a valid UUID
    */
-  private isUUID(value: string): boolean {
+  isUUID = (value: string): boolean => {
     return value
       ? (value.match(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/) ?? [])?.length > 0
       : false;
@@ -795,7 +673,7 @@ class LLMService extends EventEmitter {
   /**
    * Reset processing state for new chat session
    */
-  private resetState(graphId: string): void {
+  resetState = (graphId: string): void => {
     logInfo(`🔄 Resetting LLM service state for graph: ${graphId}`);
     this.textBuffer = '';
     this.currentUUID = '';
@@ -811,7 +689,6 @@ class LLMService extends EventEmitter {
     this.processedNodes.clear();
     this.nodeCount = 0;
     this.edgeCount = 0;
-    this.lastActivity = Date.now();
     
     // Reset extraction progress tracking
     this.extractionProgress = {
@@ -820,25 +697,17 @@ class LLMService extends EventEmitter {
       hasReceivedMinimumContent: false
     };
     
-    // Reset repetition tracking
-    this.repetitionTracking = {
-      recentNodeIds: new Set(),
-      recentEdgeCombinations: new Set(),
-      repetitionWarnings: 0,
-      lastRepetitionCheck: Date.now()
-    };
-    
     this.completionTimer = setTimeout(() => {
       logInfo('🕰️ Completion timeout reached, finalizing graph');
       this.finalizeGraph();
       this.emit('chat_complete', true);
-    }, 120000); // 120 seconds (2 minutes) to allow for comprehensive extraction
+    }, 300000); // 300 seconds (5 minutes) to allow for comprehensive extraction
   }
 
   /**
    * Finalize any pending nodes and complete graph generation
    */
-  private finalizeGraph(): void {
+  finalizeGraph = (): void => {
     logInfo(`🏁 Finalizing graph generation - Nodes: ${this.nodeCount}, Edges: ${this.edgeCount}`);
     
     // Complete any pending current node
@@ -859,7 +728,7 @@ class LLMService extends EventEmitter {
   /**
    * Generate system prompt for AI
    */
-  private generateSystemPrompt(): string {
+  generateSystemPrompt = (): string => {
     return `You are an expert knowledge graph extraction AI that creates comprehensive, well-structured graphs from documents. Your goal is to extract ALL key concepts, relationships, and insights to build rich, interconnected knowledge representations.
 
 **CRITICAL EXTRACTION REQUIREMENTS:**
@@ -871,95 +740,6 @@ class LLMService extends EventEmitter {
 - **COMPREHENSIVE COVERAGE**: Every major concept, method, finding, and relationship
 - **DEEP ANALYSIS**: Look beyond surface content to identify underlying ideas
 - **PROGRESSIVE BUILDING**: Start with core concepts, then expand with supporting details and relationships
-
-**ANTI-REPETITION MANDATE:**
-- **NEVER** repeat the same node ID, even with different content
-- **NEVER** repeat the same edge (source_id + target_id combination)
-- **ALWAYS** create unique, meaningful identifiers for each concept
-- **CONTINUOUSLY** expand the knowledge graph with new, diverse content
-- **SYSTEMATICALLY** explore different aspects and perspectives of the document
-
-**MANDATORY DIVERSITY PATTERNS - EXTRACT ALL OF THESE:**
-
-1. **Foundational Concepts Pattern** (8-12 nodes):
-   - Core theoretical frameworks and principles
-   - Fundamental assumptions and premises
-   - Key definitions and terminologies
-   - Historical foundations and background
-   - Conceptual models and paradigms
-   - Foundational literature and citations
-
-2. **Research Methodology Pattern** (6-10 nodes):
-   - Research design and approach
-   - Data collection methods
-   - Analysis techniques and tools
-   - Validation and verification procedures
-   - Sampling strategies and populations
-   - Experimental controls and variables
-
-3. **Findings and Results Pattern** (12-18 nodes):
-   - Primary research findings
-   - Secondary observations
-   - Quantitative measurements and statistics
-   - Qualitative insights and themes
-   - Unexpected discoveries
-   - Comparative results across conditions
-   - Temporal patterns and trends
-   - Correlation and causation findings
-
-4. **Evidence and Support Pattern** (8-12 nodes):
-   - Empirical evidence and data points
-   - Case studies and examples
-   - Statistical data and metrics
-   - Expert opinions and citations
-   - Supporting literature references
-   - Observational evidence
-
-5. **Implications and Applications Pattern** (8-12 nodes):
-   - Practical applications and implementations
-   - Theoretical implications and contributions
-   - Future research directions and opportunities
-   - Broader impact and significance
-   - Policy implications and recommendations
-   - Industry applications and use cases
-
-6. **Critical Analysis Pattern** (6-10 nodes):
-   - Limitations and constraints
-   - Alternative explanations and interpretations
-   - Contradictory evidence and conflicting views
-   - Areas of uncertainty and knowledge gaps
-   - Methodological critiques and concerns
-   - Bias considerations and controls
-
-7. **Contextual and Environmental Pattern** (8-12 nodes):
-   - Historical context and background
-   - Social and cultural factors
-   - Economic and political influences
-   - Technological context and constraints
-   - Geographical and temporal scope
-   - Institutional and organizational factors
-
-8. **Process and Workflow Pattern** (6-10 nodes):
-   - Step-by-step procedures and protocols
-   - Decision-making processes
-   - Workflow sequences and dependencies
-   - Quality control and assurance measures
-   - Monitoring and evaluation procedures
-
-9. **Stakeholder and Actor Pattern** (5-8 nodes):
-   - Key individuals and researchers
-   - Organizations and institutions
-   - Target populations and beneficiaries
-   - Collaborators and partners
-   - Decision-makers and influencers
-
-10. **Technical and Methodological Details Pattern** (8-12 nodes):
-    - Specific tools and technologies used
-    - Technical specifications and requirements
-    - Software and hardware components
-    - Measurement instruments and calibration
-    - Data processing and transformation steps
-    - Quality metrics and benchmarks
 
 **RELATIONSHIP COMPLEXITY REQUIREMENTS:**
 - Create multi-hop reasoning chains (A → B → C → D)
@@ -992,48 +772,6 @@ Instead of stopping at basic concepts, continue extracting:
 
 CRITICAL: Generate comprehensive graphs with 80+ nodes and 100+ edges. PRIORITIZE RELATIONSHIP EXTRACTION - every node should connect to 2-3+ other nodes. Every node MUST have a valid node_type. Start processing immediately and continue until all major concepts and relationships are extracted. ABSOLUTE DIVERSITY IS MANDATORY - NO REPETITION ALLOWED.
 
-**DIVERSITY ENFORCEMENT STRATEGY:**
-1. **Conceptual Diversity**: Extract concepts from different levels (macro theories, micro details, methodological aspects, contextual factors)
-2. **Temporal Diversity**: Include historical background, current findings, and future implications
-3. **Perspective Diversity**: Consider multiple viewpoints, alternative interpretations, and conflicting evidence
-4. **Relational Diversity**: Use all available edge types to show different relationship patterns
-5. **Granularity Diversity**: Mix high-level themes with specific technical details
-
-**AGGRESSIVE RELATIONSHIP EXTRACTION STRATEGY:**
-- **EVERY NODE must connect to 2-3+ other nodes minimum**
-- **Look for ALL relationship types**: causal, temporal, hierarchical, comparative, contradictory
-- **Extract bidirectional relationships** where appropriate (A supports B, B references A)
-- **Find indirect connections**: if A relates to B and B relates to C, also consider A-C relationships
-- **Cross-reference patterns**: concepts mentioned together likely have relationships
-- **Temporal sequences**: extract before/after, cause/effect chains extensively
-- **Evidence chains**: every claim should connect to multiple evidence nodes
-- **Methodological links**: connect research methods to findings, findings to implications
-
-**EXTRACTION STRATEGY:**
-1. **First Pass - Core Concepts**: Extract main topics, theories, methods, findings, and conclusions
-2. **Second Pass - Supporting Details**: Add evidence, examples, background concepts, and context
-3. **Third Pass - Dense Relationships**: Identify ALL causal links, dependencies, comparisons, contradictions
-4. **Fourth Pass - Multi-Hop Connections**: Create reasoning chains (A → B → C → D)
-5. **Fifth Pass - Cross-Domain Links**: Connect concepts across different sections and themes
-6. **Sixth Pass - Implicit Relationships**: Extract unstated dependencies and contextual connections
-
-**CRITICAL: Use this EXACT format for each node and edge:**
-
-For nodes (ALL FIELDS REQUIRED):
-(id: "unique_meaningful_id", node_type: "Question|Investigation|Claim|Evidence", title: "Human readable title", description: "Detailed description of the concept")
-
-For edges:
-(source_id: "source_node_id", target_id: "target_node_id", edge_type: "inform|motivate|produce|support|oppose|substantiate|synthesis|references")
-
-**STRICT FORMATTING RULES:**
-1. Use parentheses () to wrap each node/edge
-2. Use quotes around ALL values
-3. For nodes: Use EXACT field names: "id", "node_type", "title", "description" - ALL ARE REQUIRED
-4. For edges: Use EXACT field names: "source_id", "target_id", "edge_type"
-5. Use commas to separate fields
-6. node_type MUST be one of: "Question", "Investigation", "Claim", "Evidence" (NEVER empty)
-7. edge_type MUST be one of: "inform", "motivate", "produce", "support", "oppose", "substantiate", "synthesis", "references"
-
 **NODE TYPE GUIDELINES:**
 - **Question**: Research questions, hypotheses to test, open problems, areas of inquiry, methodological questions
 - **Investigation**: Research methods, experiments, studies, analytical approaches, methodologies, data collection processes
@@ -1052,13 +790,43 @@ For edges:
 
 **MANDATORY DIVERSITY PATTERNS - EXTRACT ALL OF THESE:**
 
+**OUTPUT FORMAT - USE EXACT SYNTAX:**
+Generate nodes and edges using this EXACT format - no deviations allowed:
+
+**FOR NODES:**
+(id: "unique_node_id", node_type: "question|investigation|claim|evidence", title: "Clear Node Title", description: "Detailed description of the concept", citation: "Author (Year) or [Page X] or DOI/URL")
+
+**FOR EDGES:**
+(source_id: "source_node_id", target_id: "target_node_id", edge_type: "support|oppose|inform|motivate|produce|substantiate|synthesis|references")
+
+**CRITICAL FORMAT RULES:**
+- Use parentheses ( ) exactly as shown
+- Include all required fields for each node/edge
+- Use double quotes for all string values
+- Separate fields with commas and spaces exactly as shown
+- **ALWAYS include citation field for nodes** - reference source material, page numbers, or specific sections
+- NO markdown formatting (**, --, etc.) 
+- NO numbered lists
+- Each node/edge must be on its own line
+- Start generating immediately in this format
+
+**CITATION EXAMPLES:**
+- For academic papers: "Smith et al. (2023)" or "DOI:10.1000/xyz123"
+- For books: "Johnson (2022), Chapter 3" or "[Page 45]"
+- For web sources: "https://example.com/article" or "Website Title (2023)"
+- For document sections: "[Section 2.1]" or "[Abstract]" or "[Introduction]"
+
+**EXAMPLE:**
+(id: "energy_constraints", node_type: "claim", title: "Energy Constraints", description: "Physical limitations on computational processes", citation: "Smith et al. (2023)")
+(id: "computational_limits", node_type: "claim", title: "Computational Limits", description: "Boundaries of what can be computed", citation: "[Section 3.2]")
+(source_id: "energy_constraints", target_id: "computational_limits", edge_type: "inform")
 `;
   }
 
   /**
    * Format user message for AI processing
    */
-  private formatUserMessage(payload: { document: string; graph_id: string; type: 'text' | 'pdf' }): string {
+  formatUserMessage = (payload: { document: string; graph_id: string; type: 'text' | 'pdf' }): string => {
     const wordCount = payload.document.split(/\s+/).length;
     const documentType = payload.type === 'pdf' ? 'PDF document' : 'text document';
   
@@ -1088,10 +856,10 @@ Generate a rich, interconnected knowledge graph using the exact format specified
   /**
    * Log extraction summary
    */
-  private logExtractionSummary(): void {
+  logExtractionSummary = (): void => {
     const totalAttempts = this.processedFields.size;
-    const uniqueNodeIds = this.repetitionTracking.recentNodeIds.size;
-    const uniqueEdgeCombinations = this.repetitionTracking.recentEdgeCombinations.size;
+    const uniqueNodeIds = this.processedNodes.size;
+    const uniqueEdgeCombinations = this.processedEdges.size;
     const diversityScore = totalAttempts > 0 ? ((uniqueNodeIds + uniqueEdgeCombinations) / totalAttempts) : 0;
   
     logInfo(`📊 Extraction summary - Total Nodes: ${this.nodeCount}, Total Edges: ${this.edgeCount}`);
@@ -1099,7 +867,6 @@ Generate a rich, interconnected knowledge graph using the exact format specified
     logInfo(`🕒 Time elapsed: ${Date.now() - this.extractionProgress.lastProgressCheck}ms`);
     logInfo(`🔄 Repetition analysis - Total attempts: ${totalAttempts}, Unique node IDs: ${uniqueNodeIds}, Unique edge combinations: ${uniqueEdgeCombinations}`);
     logInfo(`📈 Diversity score: ${(diversityScore * 100).toFixed(1)}% (higher is better)`);
-    logInfo(`⚠️ Repetition warnings issued: ${this.repetitionTracking.repetitionWarnings}`);
   
     // Quality assessment
     if (this.nodeCount < 80) {
@@ -1109,7 +876,7 @@ Generate a rich, interconnected knowledge graph using the exact format specified
       logInfo('🚨 Below minimum edge threshold (100) - consider prompt enhancement');
     }
     if (diversityScore < 0.5) {
-      logInfo('🚨 Low diversity score - high repetition detected');
+      logInfo('🚨 Low diversity score - consider reviewing extraction quality');
     }
   }
 

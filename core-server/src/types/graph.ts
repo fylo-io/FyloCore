@@ -202,6 +202,7 @@ export interface FyloNode {
     id: string;
     description: string;
     node_type: string;
+    internal_id?: string; // For snake_case identifier mapping
     is_moving?: boolean;
     picker_color?: string;
     is_root?: boolean;

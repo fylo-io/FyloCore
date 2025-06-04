@@ -13,7 +13,7 @@ import { processReferencesPdf } from '../utils/grobidClient';
 import { getDocumentFromDoi } from '../utils/helpers';
 
 // Create a proper temp directory within the application structure
-const TEMP_DIR = path.join(process.cwd(), 'tmp');
+const TEMP_DIR = path.join(process.cwd(), '.tmp');
 
 // Ensure temp directory exists
 if (!fs.existsSync(TEMP_DIR)) {
