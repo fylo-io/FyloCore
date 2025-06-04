@@ -5,6 +5,7 @@ import * as dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 
+import { initializeDatabase } from './database/supabaseClient';
 import { errorMiddleware } from './middleware/errorMiddleware';
 import { handleGraphNamespace } from './namespaces/graphNamespace';
 import { handleUsersNamespace } from './namespaces/userNamespace';
@@ -118,6 +119,9 @@ const io = new SocketIOServer(server, {
 // Initialize Socket.IO namespaces
 handleGraphNamespace(io.of('/graph'));
 handleUsersNamespace(io.of('/users'));
+
+// Initialize database
+initializeDatabase();
 
 // Start server with error handling
 server.listen(PORT, (err?: Error) => {
