@@ -15,18 +15,14 @@ const API_URL = (() => {
   
   // Check if running in Docker using explicit environment flag
   const isDocker = process.env.DOCKER_ENVIRONMENT === 'true';
-  
-  console.log(`[NextAuth] Environment detection - Docker: ${isDocker}, Base URL: ${baseUrl}, DOCKER_ENVIRONMENT: ${process.env.DOCKER_ENVIRONMENT}`);
-  
+
   if (isDocker) {
     const dockerUrl = baseUrl.replace('localhost', 'core-server');
-    console.log(`[NextAuth] Using Docker internal URL: ${dockerUrl}`);
     return dockerUrl;
   }
   
   // If running locally, replace localhost with IPv4
   const localUrl = baseUrl.replace('localhost', '127.0.0.1');
-  console.log(`[NextAuth] Using local IPv4 URL: ${localUrl}`);
   return localUrl;
 })();
 

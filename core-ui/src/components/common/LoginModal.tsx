@@ -57,6 +57,33 @@ export const LoginModal: FC<LoginModalProps> = ({ close }) => {
     }
   };
 
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event bubbling
+
+    // Check if the input field contains an email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!form.usernameOrEmail || !emailRegex.test(form.usernameOrEmail)) {
+      setError("Please enter a valid email address in the Username/Email field");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await axios.post(`${API_URL}/api/auth/forgot-password`, { 
+        email: form.usernameOrEmail 
+      });
+      setError(null);
+      alert("Password reset email sent successfully! Check your inbox.");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to send reset email. Please check if the email exists.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       axios.get(`${API_URL}/api/user?userId=${session?.user.id}`).then(response => {
@@ -118,9 +145,20 @@ export const LoginModal: FC<LoginModalProps> = ({ close }) => {
                   />
                   <label htmlFor="remember">Remember me</label>
                 </div>
-                <span className="text-[#0048AE] hover:underline underline-offset-2 cursor-pointer">
+                <div
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleForgotPassword(e);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  className="text-[#0048AE] hover:underline underline-offset-2 cursor-pointer"
+                >
                   Forgot Password?
-                </span>
+                </div>
               </div>
               <button
                 type="submit"

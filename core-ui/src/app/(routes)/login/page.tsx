@@ -5,9 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { FC, useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import axios from "axios";
 
 import { WindowSize } from "@/const";
 import useWindowSize from "@/hooks/useWindowSize";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const Login: FC = () => {
   const [form, setForm] = useState({ usernameOrEmail: "", password: "" });
@@ -49,6 +52,34 @@ const Login: FC = () => {
       await signIn("google", { callbackUrl: "/dashboard" });
     } catch (err) {
       setError("Failed to sign in with Google. Please try again.");
+    }
+  };
+
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Check if the input field contains an email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!form.usernameOrEmail || !emailRegex.test(form.usernameOrEmail)) {
+      setError("Please enter a valid email address in the Username/Email field");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await axios.post(`${API_URL}/api/auth/forgot-password`, { 
+        email: form.usernameOrEmail 
+      });
+      setError(null);
+      alert("Password reset email sent successfully! Check your inbox.");
+    } catch (err: any) {
+      console.error("Forgot password error:", err);
+      setError(err.response?.data?.error || "Failed to send reset email. Please check if the email exists.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -145,7 +176,7 @@ const Login: FC = () => {
                 />
                 <span className="text-[#80858C]">Remember me</span>
               </label>
-              <a href="#" className="text-[#80858C] hover:underline">
+              <a href="#" onClick={handleForgotPassword} className="text-[#80858C] hover:underline cursor-pointer">
                 Forgot Password?
               </a>
             </div>
@@ -257,7 +288,7 @@ const Login: FC = () => {
                 />
                 <span className="text-[#80858C]">Remember me</span>
               </label>
-              <a href="#" className="text-[#80858C] hover:underline">
+              <a href="#" onClick={handleForgotPassword} className="text-[#80858C] hover:underline cursor-pointer">
                 Forgot Password?
               </a>
             </div>

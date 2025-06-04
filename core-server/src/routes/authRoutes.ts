@@ -7,6 +7,9 @@ import {
   readUserByNameOrByEmailHandler,
   readUserByNameOrEmailHandler,
   verifyEmailHandler,
+  sendPasswordResetEmailHandler,
+  resetPasswordHandler,
+  validateResetTokenHandler,
 } from '../controllers/authController';
 
 const router = Router();
@@ -212,5 +215,92 @@ router.post('/read-by-name-or-by-email', readUserByNameOrByEmailHandler);
  *         description: Server error
  */
 router.post('/read-by-name-or-email', readUserByNameOrEmailHandler);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Send a password reset email
+ *     description: Send a password reset email to the user's email address
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset email sent successfully
+ *       400:
+ *         description: Unable to send password reset email or invalid input
+ *       500:
+ *         description: Server error
+ */
+router.post('/forgot-password', sendPasswordResetEmailHandler);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Reset a user's password
+ *     description: Reset a user's password using a token sent to their email
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - password
+ *             properties:
+ *               token:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid or expired token or invalid input
+ *       500:
+ *         description: Server error
+ */
+router.post('/reset-password', resetPasswordHandler);
+
+/**
+ * @swagger
+ * /api/auth/validate-reset-token:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Validate a password reset token
+ *     description: Validate a password reset token sent to the user's email
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The password reset token
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *       400:
+ *         description: Invalid or expired token
+ *       500:
+ *         description: Server error
+ */
+router.get('/validate-reset-token', validateResetTokenHandler);
 
 export default router;
