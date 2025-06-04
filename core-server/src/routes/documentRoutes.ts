@@ -4,7 +4,6 @@ import {
   extractContentFromUrlHandler,
   extractDocumentFromDoiHandler,
   extractDocumentFromPdfHandler,
-  extractReferencesFromPdfHandler,
 } from '../controllers/documentController';
 import upload from '../middleware/uploadMiddleware';
 
@@ -128,80 +127,5 @@ router.post('/pdf', upload.single('file'), extractDocumentFromPdfHandler);
  *         description: Server error while fetching or processing the PDF
  */
 router.post('/url', extractContentFromUrlHandler);
-
-/**
- * @swagger
- * /api/document/extract-references:
- *   post:
- *     tags:
- *       - Documents
- *     summary: Extract references from a PDF document
- *     description: Upload a PDF file to extract its bibliographic references using GROBID
- *     consumes:
- *       - multipart/form-data
- *     requestBody:
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *                 description: PDF file to extract references from
- *     responses:
- *       200:
- *         description: References extracted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     references:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           ref_id:
- *                             type: string
- *                             description: Reference identifier
- *                           title:
- *                             type: string
- *                             description: Reference title
- *                           authors:
- *                             type: array
- *                             items:
- *                               type: string
- *                             description: List of author names
- *                           year:
- *                             type: string
- *                             description: Publication year
- *                           doi:
- *                             type: string
- *                             nullable: true
- *                             description: Digital Object Identifier
- *                           url:
- *                             type: string
- *                             nullable: true
- *                             description: URL associated with the reference
- *                     total_references:
- *                       type: integer
- *                       description: Total number of references extracted
- *                     processed_at:
- *                       type: string
- *                       format: date-time
- *                       description: Timestamp of when processing occurred
- *       400:
- *         description: Bad request, missing file, invalid file type, or file size exceeds limit
- *       500:
- *         description: Server error while processing the file
- */
-router.post('/extract-references', upload.single('file'), extractReferencesFromPdfHandler);
 
 export default router;

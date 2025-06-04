@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-server
+  namespace: fylocore
+  labels:
+    app: core-server
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: core-server
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: core-server
+        version: v1
+    spec:
+      containers:
+      - name: core-server
+        image: fylocore/core-server:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "8000"
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fylocore-secrets
+              key: anthropic-api-key
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: fylocore-secrets
+              key: supabase-url
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fylocore-secrets
+              key: supabase-service-role-key
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: fylocore-secrets
+              key: jwt-secret
+        - name: JWT_EXPIRES_IN
+          value: "7d"
+        - name: RESEND_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fylocore-secrets
+              key: resend-api-key
+        - name: EMAIL_FROM
+          value: "noreply@fylocore.org"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+      imagePullSecrets:
+      - name: fylocore-registry-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: core-server-service
+  namespace: fylocore
+  labels:
+    app: core-server
+spec:
+  selector:
+    app: core-server
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP

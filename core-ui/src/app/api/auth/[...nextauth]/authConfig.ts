@@ -7,7 +7,28 @@ import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+// Handle API URL for server-side NextAuth calls
+// In Docker: convert localhost to core-server for internal networking
+// Locally: convert localhost to IPv4 127.0.0.1 to avoid IPv6 issues
+const API_URL = (() => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  
+  // Check if running in Docker using explicit environment flag
+  const isDocker = process.env.DOCKER_ENVIRONMENT === 'true';
+  
+  console.log(`[NextAuth] Environment detection - Docker: ${isDocker}, Base URL: ${baseUrl}, DOCKER_ENVIRONMENT: ${process.env.DOCKER_ENVIRONMENT}`);
+  
+  if (isDocker) {
+    const dockerUrl = baseUrl.replace('localhost', 'core-server');
+    console.log(`[NextAuth] Using Docker internal URL: ${dockerUrl}`);
+    return dockerUrl;
+  }
+  
+  // If running locally, replace localhost with IPv4
+  const localUrl = baseUrl.replace('localhost', '127.0.0.1');
+  console.log(`[NextAuth] Using local IPv4 URL: ${localUrl}`);
+  return localUrl;
+})();
 
 if (!API_URL) {
   throw new Error("NEXT_PUBLIC_API_URL is not defined in the environment.");

@@ -9,7 +9,6 @@ import { readDocumentsByDois } from '../database/document/readDocumentsByDois/re
 import { saveDocument } from '../database/document/saveDocument/saveDocument';
 import { uploadPdf } from '../database/document/uploadPdf/uploadPdf';
 import { handleErrors } from '../utils/errorHandler';
-import { processReferencesPdf } from '../utils/grobidClient';
 import { getDocumentFromDoi } from '../utils/helpers';
 
 // Create a proper temp directory within the application structure
@@ -134,62 +133,6 @@ export const extractContentFromUrlHandler = async (req: Request, res: Response):
     res.status(200).json({ text: data.text });
   } catch (error) {
     handleErrors('Failed to extract content from URL:', error as Error);
-    res.status(500).json({ error: 'An unexpected error occurred' });
-  }
-};
-
-/**
- * Extract references from a PDF file
- * @param req - Express request with PDF file upload
- * @param res - Express response with extracted references
- */
-export const extractReferencesFromPdfHandler = async (
-  req: Request,
-  res: Response,
-): Promise<void> => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ error: 'No file uploaded' });
-      return;
-    }
-
-    if (req.file.size > MAX_FILE_SIZE) {
-      res.status(400).json({ error: 'File size exceeds the 20MB limit' });
-      return;
-    }
-
-    if (req.file.mimetype !== 'application/pdf') {
-      res.status(400).json({ error: 'Invalid file type. Only PDF files are allowed.' });
-      return;
-    }
-
-    // Save the file temporarily using a proper path within the application structure
-    const tempFileName = `${Date.now()}-${req.file.originalname}`;
-    const tempFilePath = path.join(TEMP_DIR, tempFileName);
-
-    try {
-      // Make sure the directory exists
-      await fs.promises.writeFile(tempFilePath, req.file.buffer);
-
-      // Process with GROBID
-      const result = await processReferencesPdf(tempFilePath);
-
-      res.status(200).json({
-        status: 'success',
-        data: result,
-      });
-    } finally {
-      // Clean up temporary file
-      try {
-        if (fs.existsSync(tempFilePath)) {
-          await fs.promises.unlink(tempFilePath);
-        }
-      } catch (cleanupError) {
-        handleErrors('Error removing temporary file:', cleanupError as Error);
-      }
-    }
-  } catch (error) {
-    handleErrors('Failed to extract references from PDF:', error as Error);
     res.status(500).json({ error: 'An unexpected error occurred' });
   }
 };

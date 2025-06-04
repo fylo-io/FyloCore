@@ -99,35 +99,13 @@ const ImportDocument: FC<ImportDocumentProps> = ({ onSubmit, onBack }) => {
 
         if (response.status === 200) {
           const data = response.data;
-          let references = [];
-          let chunks = [];
-          try {
-            const refResponse = await axios.post(
-              `${API_URL}/api/document/extract-references`,
-              formData,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data"
-                }
-              }
-            );
-
-            if (refResponse.status === 200) {
-              references = refResponse.data?.data?.references || [];
-              chunks = refResponse.data?.data?.chunks || [];
-            }
-          } catch (refError) {
-            console.error("Error extracting references:", refError);
-          }
           pdfDocuments.push({
             type: SourceType.PDF,
             title: data.title,
             status: DocumentStatus.LABEL,
             content: data.text,
             authors: data?.authors,
-            publicationYear: data?.publication_year,
-            references,
-            chunks
+            publicationYear: data?.publication_year
           });
         }
       } catch (error) {

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Core Server (Backend API)
+  core-server:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../core-server/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=8000
+      - DOCKER_ENVIRONMENT=true
+    volumes:
+      - ../../core-server/logs:/app/logs
+    networks:
+      - fylocore-network
+    restart: unless-stopped
+
+  # Core UI (Frontend)
+  core-ui:
+    build:
+      context: ../../core-ui
+      dockerfile: ./Dockerfile.ui
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../../core-ui/.env
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - DOCKER_ENVIRONMENT=true
+    networks:
+      - fylocore-network
+    restart: unless-stopped
+
+networks:
+  fylocore-network:
+    driver: bridge

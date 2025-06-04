@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fylocore.org/schemas/edge",
+  "title": "FyloCore Edge Schema", 
+  "description": "JSON Schema for FyloCore knowledge graph edges/relationships",
+  "type": "object",
+  "required": ["id", "created_at", "graph_id", "source", "target", "type"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the edge"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the edge was created"
+    },
+    "graph_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier of the graph this edge belongs to"
+    },
+    "source": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier of the source node"
+    },
+    "target": {
+      "type": "string", 
+      "format": "uuid",
+      "description": "Unique identifier of the target node"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "floating",
+        "supports", 
+        "contradicts",
+        "relates_to",
+        "derives_from",
+        "enables",
+        "informs",
+        "questions",
+        "validates",
+        "compares_with"
+      ],
+      "description": "Type of relationship between nodes"
+    },
+    "data": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable label for the relationship"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the relationship"
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Strength or confidence of the relationship"
+        },
+        "evidence": {
+          "type": "string",
+          "description": "Evidence supporting this relationship"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "created_by": {
+              "type": "string",
+              "format": "uuid",
+              "description": "User who created this edge"
+            },
+            "source_document": {
+              "type": "string",
+              "description": "Document from which this relationship was extracted"
+            },
+            "extraction_method": {
+              "type": "string",
+              "enum": ["manual", "ai_generated", "rule_based"],
+              "description": "Method used to identify this relationship"
+            },
+            "confidence_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Algorithmic confidence in relationship validity"
+            }
+          }
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "properties": {
+        "stroke": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Color of the edge line"
+        },
+        "strokeWidth": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Width of the edge line"
+        },
+        "strokeDasharray": {
+          "type": "string",
+          "description": "Dash pattern for the edge line"
+        },
+        "animated": {
+          "type": "boolean",
+          "description": "Whether the edge should be animated"
+        }
+      }
+    }
+  }
+}

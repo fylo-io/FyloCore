@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fylocore.org/vocabularies/node-types",
+  "title": "FyloCore Node Type Vocabulary",
+  "description": "Controlled vocabulary for knowledge graph node types",
+  "type": "object",
+  "properties": {
+    "vocabularyInfo": {
+      "type": "object",
+      "properties": {
+        "name": { "const": "FyloCore Node Types" },
+        "version": { "const": "1.0" },
+        "license": { "const": "CC0-1.0" },
+        "description": { "const": "Standard node types for knowledge representation" }
+      }
+    },
+    "nodeTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "description", "category"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "description": { "type": "string" },
+          "category": { "type": "string" },
+          "color": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+          "examples": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "default": [
+        {
+          "id": "question",
+          "label": "Question",
+          "description": "Research questions, hypotheses, or inquiries that drive investigation",
+          "category": "inquiry",
+          "color": "#3B82F6",
+          "examples": [
+            "What factors influence climate change?",
+            "How does social media affect mental health?",
+            "Can machine learning improve medical diagnosis?"
+          ]
+        },
+        {
+          "id": "investigation", 
+          "label": "Investigation",
+          "description": "Research methodologies, approaches, or systematic inquiries",
+          "category": "method",
+          "color": "#8B5CF6",
+          "examples": [
+            "Longitudinal cohort study",
+            "Randomized controlled trial",
+            "Meta-analysis of existing literature"
+          ]
+        },
+        {
+          "id": "evidence",
+          "label": "Evidence",
+          "description": "Data, observations, measurements, or factual information",
+          "category": "data",
+          "color": "#10B981",
+          "examples": [
+            "Statistical correlation coefficient",
+            "Experimental measurement results",
+            "Survey response data"
+          ]
+        },
+        {
+          "id": "claim",
+          "label": "Claim",
+          "description": "Assertions, conclusions, or theoretical statements that can be evaluated",
+          "category": "conclusion",
+          "color": "#F59E0B",
+          "examples": [
+            "Increased CO2 causes global warming",
+            "Exercise reduces depression symptoms",
+            "AI will transform healthcare delivery"
+          ]
+        },
+        {
+          "id": "theory",
+          "label": "Theory",
+          "description": "Explanatory frameworks or theoretical models",
+          "category": "framework",
+          "color": "#EF4444",
+          "examples": [
+            "Theory of planned behavior",
+            "General relativity",
+            "Social cognitive theory"
+          ]
+        },
+        {
+          "id": "concept",
+          "label": "Concept",
+          "description": "Abstract ideas, definitions, or conceptual frameworks",
+          "category": "framework",
+          "color": "#6B7280",
+          "examples": [
+            "Social capital",
+            "Cognitive load",
+            "Sustainability"
+          ]
+        }
+      ]
+    }
+  }
+}

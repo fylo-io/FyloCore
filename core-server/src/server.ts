@@ -124,10 +124,6 @@ handleUsersNamespace(io.of('/users'));
 initializeDatabase();
 
 // Start server with error handling
-server.listen(PORT, (err?: Error) => {
-  if (err) {
-    handleErrors('Server error:', err);
-    process.exit(1);
-  }
-  logInfo(`Server is running on http://localhost:${PORT}`);
+server.listen(Number(PORT), '0.0.0.0', () => {
+  logInfo(`Server is running on http://0.0.0.0:${PORT}`);
 });
