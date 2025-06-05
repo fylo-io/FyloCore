@@ -20,5 +20,5 @@ export default withAuth({
 });
 
 export const config = {
-  matcher: ["/((?!login|signup|images|graph|verify-email|reset-password|download|^/$).*)"]
+  matcher: ["/((?!login|signup|images|graph|download|^/$).*)"]
 };

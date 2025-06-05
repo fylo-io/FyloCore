@@ -1,11 +1,9 @@
 import axios from "axios";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { Account, AuthOptions, Profile, Session, User } from "next-auth";
-import { AdapterUser } from "next-auth/adapters";
+import type { AuthOptions, Session } from "next-auth";
 import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 
 // Handle API URL for server-side NextAuth calls
 // In Docker: convert localhost to core-server for internal networking
@@ -47,12 +45,6 @@ export const authOptions: AuthOptions = {
   },
   useSecureCookies: false,
   providers: [
-    // Google Provider
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string
-    }),
-
     // Sign-In Provider
     CredentialsProvider({
       id: "signin",
@@ -78,10 +70,6 @@ export const authOptions: AuthOptions = {
           }
 
           const user = response.data;
-
-          if (!user.verified) {
-            throw new Error("User not verified.");
-          }
 
           const isValid = await verifyPassword(password, user.password);
           if (!isValid) {
@@ -161,44 +149,12 @@ export const authOptions: AuthOptions = {
   },
 
   callbacks: {
-    async jwt(params: {
-      token: JWT;
-      account: Account | null;
-      trigger?: "signIn" | "signUp" | "update";
-    }) {
-      if (params.account?.provider === "google" && params?.trigger === "signIn") {
-        const { email } = params.token;
-        const response = await axios.get(`${API_URL}/api/auth/read-google?email=${email}`);
-        return { ...params.token, sub: response.data.id };
-      }
-      return params.token;
-    },
     async session(params: { session: Session; token: JWT }) {
       if (params.session.user) {
         params.session.user.id = params.token.sub || "";
         params.session.user.name = params.token.name || "";
       }
       return params.session;
-    },
-    async signIn(params: {
-      user: User | AdapterUser;
-      account: Account | null;
-      profile?: Profile | undefined;
-    }) {
-      if (params.account?.provider === "google" && params.profile) {
-        try {
-          await axios.post(`${API_URL}/api/auth/create-google`, {
-            name: params.user.name,
-            email: params.user.email,
-            image: params.user.image
-          });
-          return true;
-        } catch (error) {
-          console.error("Error creating Google user:", error);
-          return false;
-        }
-      }
-      return true;
     }
   }
 };

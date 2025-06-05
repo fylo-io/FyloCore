@@ -3,8 +3,8 @@ import { Eye, EyeOff, LockKeyhole, Mail, User } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FC, useState } from "react";
-import { FcGoogle } from "react-icons/fc";
 
 import { WindowSize } from "@/const";
 import useWindowSize from "@/hooks/useWindowSize";
@@ -16,6 +16,7 @@ const Signup: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const windowSize = useWindowSize();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -39,22 +40,15 @@ const Signup: FC = () => {
         setError(res.error);
         setIsLoading(false);
       } else {
-        setMessage(
-          "Your account has been created. Please check your email inbox to verify your account."
-        );
+        setMessage("Account created successfully! Redirecting to login...");
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
         setIsLoading(false);
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await signIn("google", { callbackUrl: "/login" });
-    } catch (err) {
-      setError("Failed to sign in with Google. Please try again.");
     }
   };
 
@@ -67,18 +61,6 @@ const Signup: FC = () => {
           <p className="text-[20px] text-[#80858C]">
             Sign up in seconds and start exploring right away.
           </p>
-
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={handleGoogleSignIn}
-            className={`mt-[40px] flex items-center justify-center w-full py-4 border rounded-[15px] bg-input-background border-input-border text-input-text text-[20px] hover:bg-gray-50 dark:hover:bg-gray-600 ${
-              isLoading ? "cursor-not-allowed" : ""
-            }`}
-          >
-            <FcGoogle className="w-7 h-7 mr-2" />
-            Sign Up with Google
-          </button>
 
           <div className="my-[22px] flex items-center justify-center space-x-2">
             <hr className="w-1/2 border-gray-400" />
@@ -173,8 +155,12 @@ const Signup: FC = () => {
             </button>
           </form>
 
-          {message && <p className="mt-4 text-center text-green-500 font-medium">{message}</p>}
-          {error && <p className="mt-4 text-center text-red-500 font-medium">{error}</p>}
+          {message && (
+            <p className="mt-4 text-center text-green-500 font-medium">{message}</p>
+          )}
+          {error && (
+            <p className="mt-4 text-center text-red-500 font-medium">{error}</p>
+          )}
 
           <p className="mt-[25px] text-center text-muted-foreground">
             Already have an account?{" "}
@@ -192,18 +178,6 @@ const Signup: FC = () => {
           <p className="text-[12px] text-[#80858C]">
             Sign up in seconds and start exploring right away.
           </p>
-
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={handleGoogleSignIn}
-            className={`mt-[30px] flex items-center justify-center w-full py-3 border rounded-[10px] bg-input-background border-input-border text-input-text text-[15px] hover:bg-gray-50 dark:hover:bg-gray-600 ${
-              isLoading ? "cursor-not-allowed" : ""
-            }`}
-          >
-            <FcGoogle className="w-5 h-5 mr-2" />
-            Sign Up with Google
-          </button>
 
           <div className="my-[25px] flex items-center justify-center space-x-2">
             <hr className="w-1/2 border-gray-400" />

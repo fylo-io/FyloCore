@@ -29,8 +29,7 @@ export enum ToolType {
 
 export enum UserType {
   ADMIN = "ADMIN",
-  USER = "USER",
-  GOOGLE = "GOOGLE"
+  USER = "USER"
 }
 
 export enum WindowSize {

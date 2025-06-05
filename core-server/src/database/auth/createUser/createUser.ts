@@ -16,6 +16,7 @@ export const createUser = async (
           name,
           email,
           password,
+          verified: true,
           profile_color: generateRandomColor(),
         },
       ])

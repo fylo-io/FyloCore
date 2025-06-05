@@ -6,7 +6,7 @@ import { UserType } from '../consts';
  *   schemas:
  *     UserType:
  *       type: string
- *       enum: [ADMIN, USER, GOOGLE]
+ *       enum: [ADMIN, USER]
  *       description: Type of user account
  *
  *     User:
@@ -29,19 +29,19 @@ import { UserType } from '../consts';
  *           description: Timestamp when the user was created
  *         name:
  *           type: string
- *           description: The user's display name or username
+ *           description: The user's display name (username)
  *         email:
  *           type: string
  *           format: email
  *           description: The user's email address
  *         password:
  *           type: string
- *           description: The user's password (hashed, not returned in responses)
+ *           description: The user's hashed password (not returned in responses)
  *         type:
  *           $ref: '#/components/schemas/UserType'
  *         verified:
  *           type: boolean
- *           description: Whether the user's email has been verified
+ *           description: Whether the user account is verified (always true in simplified auth)
  *         profile_color:
  *           type: string
  *           description: The user's chosen profile color (hex code)
