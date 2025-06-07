@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: fylocore
-  labels:
-    name: fylocore
-    app.kubernetes.io/name: fylocore
-    app.kubernetes.io/version: "1.0"

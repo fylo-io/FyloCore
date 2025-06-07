@@ -1,77 +1,79 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: fylocore-postgres
+    container_name: fylo-postgres
     environment:
       POSTGRES_DB: fylocore
       POSTGRES_USER: fylocore
       POSTGRES_PASSWORD: fylocore_password
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-extensions.sql:/docker-entrypoint-initdb.d/init-extensions.sql
-    networks:
-      - fylocore-network
-    restart: unless-stopped
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fylocore -d fylocore"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # Core Server (Backend API)
   core-server:
     build:
-      context: ../../
-      dockerfile: deploy/docker/Dockerfile
+      context: ../core-server
+      dockerfile: Dockerfile
+    container_name: fylo-core-server
     ports:
       - "8000:8000"
-    env_file:
-      - ../../core-server/.env
     environment:
       - NODE_ENV=development
-      - PORT=8000
-      - DOCKER_ENVIRONMENT=true
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=fylocore
       - DB_USER=fylocore
       - DB_PASSWORD=fylocore_password
-    volumes:
-      - ../../core-server/logs:/app/logs
-      - ../../storage:/app/storage
-    networks:
-      - fylocore-network
-    restart: unless-stopped
+    env_file:
+      - ../core-server/.env
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # Core UI (Frontend)
   core-ui:
     build:
-      context: ../../core-ui
-      dockerfile: ./Dockerfile.ui
+      context: ../core-ui
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://core-server:8000
+    container_name: fylo-core-ui
     ports:
       - "3000:3000"
-    env_file:
-      - ../../core-ui/.env
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - DOCKER_ENVIRONMENT=true
-    networks:
-      - fylocore-network
+    env_file:
+      - ../core-ui/.env
+    depends_on:
+      - core-server
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
 
 networks:
-  fylocore-network:
-    driver: bridge
+  default:
+    name: fylo-network
