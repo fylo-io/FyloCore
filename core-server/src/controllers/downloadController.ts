@@ -1,36 +1,47 @@
-import { Request, Response } from 'express';
-
-import { DOWNLOAD_BUCKET, supabaseClient } from '../database/supabaseClient';
-import { handleErrors } from '../utils/errorHandler';
-
-// File paths in Supabase storage
-const FILES = {
-  windows: 'fylo-desktop-v1.0.0-win-x64.exe',
-  mac: 'fylo-desktop-v1.0.0-mac.dmg',
-};
+import { Request, Response, NextFunction } from 'express';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import { DOWNLOAD_DIR } from '../database/postgresClient';
 
 /**
  * Generate a signed URL for Windows app download
  * @param req - Express request
  * @param res - Express response
  */
-export const getWindowsDownload = async (req: Request, res: Response): Promise<void> => {
+export const getWindowsDownload = async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabaseClient.storage
-      .from(DOWNLOAD_BUCKET)
-      .createSignedUrl(FILES.windows, 60 * 60); // 1 hour expiry
-
-    if (error) throw error;
-
-    if (!data?.signedUrl) {
-      res.status(404).json({ error: 'Download file not found' });
-      return;
+    console.log('Fetching Windows download...');
+    
+    const fileName = 'fylo-windows.zip';
+    const filePath = path.join(DOWNLOAD_DIR, fileName);
+    
+    // Check if file exists
+    const exists = await fs.pathExists(filePath);
+    if (!exists) {
+      return res.status(404).json({ 
+        error: 'Windows download not found',
+        message: 'The Windows installation file is not available. Please contact support.' 
+      });
     }
 
-    res.status(200).json({ downloadUrl: data.signedUrl });
+    // Get file stats for content length
+    const stats = await fs.stat(filePath);
+    
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', stats.size);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    console.log('✅ Windows download served successfully');
   } catch (error) {
-    handleErrors('Error generating Windows download URL:', error as Error);
-    res.status(500).json({ error: 'Failed to generate download URL' });
+    console.error('❌ Error fetching Windows download:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch Windows download',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
@@ -39,22 +50,39 @@ export const getWindowsDownload = async (req: Request, res: Response): Promise<v
  * @param req - Express request
  * @param res - Express response
  */
-export const getMacDownload = async (req: Request, res: Response): Promise<void> => {
+export const getMacDownload = async (req: Request, res: Response) => {
   try {
-    const { data, error } = await supabaseClient.storage
-      .from(DOWNLOAD_BUCKET)
-      .createSignedUrl(FILES.mac, 60 * 60); // 1 hour expiry
-
-    if (error) throw error;
-
-    if (!data?.signedUrl) {
-      res.status(404).json({ error: 'Download file not found' });
-      return;
+    console.log('Fetching Mac download...');
+    
+    const fileName = 'fylo-mac.dmg';
+    const filePath = path.join(DOWNLOAD_DIR, fileName);
+    
+    // Check if file exists
+    const exists = await fs.pathExists(filePath);
+    if (!exists) {
+      return res.status(404).json({ 
+        error: 'Mac download not found',
+        message: 'The Mac installation file is not available. Please contact support.' 
+      });
     }
 
-    res.status(200).json({ downloadUrl: data.signedUrl });
+    // Get file stats for content length
+    const stats = await fs.stat(filePath);
+    
+    res.setHeader('Content-Type', 'application/x-apple-diskimage');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Length', stats.size);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    console.log('✅ Mac download served successfully');
   } catch (error) {
-    handleErrors('Error generating Mac download URL:', error as Error);
-    res.status(500).json({ error: 'Failed to generate download URL' });
+    console.error('❌ Error fetching Mac download:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch Mac download',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };

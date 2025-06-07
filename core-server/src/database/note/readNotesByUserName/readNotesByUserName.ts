@@ -1,17 +1,18 @@
 import { Note } from '../../../types/note';
-import { handleErrors } from '../../../utils/errorHandler';
-import { NOTE_TABLE, supabaseClient } from '../../supabaseClient';
+import { NOTE_TABLE, pool } from '../../postgresClient';
 
-export const readNotesByUserName = async (userName: string): Promise<Note[] | undefined> => {
+export const readNotesByUserName = async (userName: string): Promise<Note[]> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(NOTE_TABLE)
-      .select('*')
-      .eq('author', userName);
-
-    if (error) throw error;
-    return data;
+    const query = `
+      SELECT * FROM ${NOTE_TABLE}
+      WHERE author = $1
+      ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [userName]);
+      
+    return result.rows as Note[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading notes by user name:', { data: null, error });
+    throw error;
   }
 };

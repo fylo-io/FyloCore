@@ -1,41 +1,34 @@
 import { handleErrors } from '../../../utils/errorHandler';
-import { GRAPH_TABLE, NODE_TABLE, supabaseClient } from '../../supabaseClient';
+import { NODE_TABLE, GRAPH_TABLE, pool } from '../../postgresClient';
 
-export const deleteNode = async (nodeId: string): Promise<void> => {
+export const deleteNode = async (nodeId: string, graphId: string): Promise<void> => {
   try {
-    const { data: nodeData, error: fetchError } = await supabaseClient
-      .from(NODE_TABLE)
-      .select('graph_id')
-      .eq('id', nodeId)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    if (!nodeData || !nodeData.graph_id) {
-      throw new Error('Node not found or missing graph_id');
+    // Start a transaction to ensure both operations succeed or fail together
+    await pool.query('BEGIN');
+    
+    // Delete the node
+    const deleteQuery = `DELETE FROM ${NODE_TABLE} WHERE id = $1 AND graph_id = $2`;
+    const result = await pool.query(deleteQuery, [nodeId, graphId]);
+    
+    if (result.rowCount === 0) {
+      await pool.query('ROLLBACK');
+      console.warn(`Node with id ${nodeId} not found for deletion in graph ${graphId}`);
+      return;
     }
-
-    const { error: deleteError } = await supabaseClient.from(NODE_TABLE).delete().eq('id', nodeId);
-
-    if (deleteError) throw deleteError;
-
-    const { data: graphData, error: graphFetchError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .select('node_count')
-      .eq('id', nodeData.graph_id)
-      .single();
-
-    if (graphFetchError) throw graphFetchError;
-
-    const newNodeCount = Math.max((graphData?.node_count || 1) - 1, 0);
-
-    const { error: updateError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .update({ node_count: newNodeCount })
-      .eq('id', nodeData.graph_id);
-
-    if (updateError) throw updateError;
+    
+    // Update the graph's node count (decrement by 1, but ensure it doesn't go below 0)
+    const updateGraphQuery = `
+      UPDATE ${GRAPH_TABLE} 
+      SET node_count = GREATEST(node_count - 1, 0) 
+      WHERE id = $1
+    `;
+    await pool.query(updateGraphQuery, [graphId]);
+    
+    // Commit the transaction
+    await pool.query('COMMIT');
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    await pool.query('ROLLBACK');
+    handleErrors('PostgreSQL Error:', error as Error);
+    throw error;
   }
 };

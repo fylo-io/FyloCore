@@ -1,29 +1,32 @@
 import { Note } from '../../../types/note';
-import { handleErrors } from '../../../utils/errorHandler';
-import { NOTE_TABLE, supabaseClient } from '../../supabaseClient';
+import { NOTE_TABLE, pool } from '../../postgresClient';
+import * as crypto from 'crypto';
 
-export const createNote = async (
-  author: string,
-  nodeId: string,
-  text: string,
-): Promise<Note | undefined> => {
+export const createNote = async (note: Omit<Note, 'id' | 'created_at'>): Promise<Note | null> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(NOTE_TABLE)
-      .insert([
-        {
-          created_at: new Date(),
-          author: author,
-          node_id: nodeId,
-          text: text,
-        },
-      ])
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return data;
+    const query = `
+      INSERT INTO ${NOTE_TABLE} (id, author, node_id, text, created_at)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    
+    const values = [
+      crypto.randomUUID(),
+      note.author,
+      note.node_id,
+      note.text,
+      new Date().toISOString()
+    ];
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows[0] as Note;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error creating note:', error);
+    throw error;
   }
 };

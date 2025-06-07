@@ -1,27 +1,27 @@
 import { User } from '../../../types/user';
-import { handleErrors } from '../../../utils/errorHandler';
-import { USER_TABLE, supabaseClient } from '../../supabaseClient';
+import { USER_TABLE, pool } from '../../postgresClient';
 
-export const readUserByNameOrEmailAll = async (nameOrEmail: string): Promise<User | undefined> => {
+export const readUserByNameOrEmailAll = async (usernameOrEmail: string): Promise<User | null> => {
   try {
-    const { data: nameData } = await supabaseClient
-      .from(USER_TABLE)
-      .select('*')
-      .eq('name', nameOrEmail)
-      .maybeSingle();
-
-    if (nameData) return nameData;
-
-    const { data: emailData, error } = await supabaseClient
-      .from(USER_TABLE)
-      .select('*')
-      .eq('email', nameOrEmail)
-      .maybeSingle();
-
-    if (error) return undefined;
-    return emailData;
+    // First try to find by name
+    let query = `SELECT * FROM ${USER_TABLE} WHERE name = $1 LIMIT 1`;
+    let result = await pool.query(query, [usernameOrEmail]);
+    
+    if (result.rows.length > 0) {
+      return result.rows[0] as User;
+    }
+    
+    // If not found by name, try by email
+    query = `SELECT * FROM ${USER_TABLE} WHERE email = $1 LIMIT 1`;
+    result = await pool.query(query, [usernameOrEmail]);
+    
+    if (result.rows.length > 0) {
+      return result.rows[0] as User;
+    }
+    
+    return null;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
-    return undefined;
+    console.error('Error reading user by name or email:', error);
+    throw error;
   }
 };

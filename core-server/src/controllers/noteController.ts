@@ -43,7 +43,11 @@ export const createNoteHandler = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const createdNote = await createNote(author, nodeId, text);
+    const createdNote = await createNote({
+      author,
+      node_id: nodeId,
+      text,
+    });
 
     if (createdNote) {
       res.status(201).json({ note: createdNote });

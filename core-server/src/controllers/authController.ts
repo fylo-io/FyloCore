@@ -5,6 +5,7 @@ import { createUser } from '../database/auth/createUser/createUser';
 import { readUserByNameOrByEmail } from '../database/auth/readUserByNameOrByEmail/readUserByNameOrByEmail';
 import { readUserByNameOrEmail as getUserByNameOrEmail } from '../database/auth/readUserByNameOrEmail/readUserByNameOrEmail';
 import { handleErrors } from '../utils/errorHandler';
+import { UserType } from '../consts';
 
 /**
  * Create a new regular user
@@ -14,7 +15,22 @@ import { handleErrors } from '../utils/errorHandler';
 export const createUserHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, email, password } = req.body;
-    const createdUser = await createUser(username, email, password);
+    
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create user data object
+    const userData = {
+      name: username,
+      email: email,
+      password: hashedPassword,
+      type: UserType.USER,
+      verified: false,
+      profile_color: '#3B82F6', // Default blue color
+      avatar_url: undefined
+    };
+    
+    const createdUser = await createUser(userData);
 
     if (createdUser) {
       res.status(201).json(createdUser);

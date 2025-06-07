@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 
 import { getMacDownload, getWindowsDownload } from '../controllers/downloadController';
 
@@ -10,21 +10,18 @@ const router = Router();
  *   get:
  *     tags:
  *       - Downloads
- *     summary: Download Windows application
- *     description: Get a signed URL for downloading the Windows desktop application
+ *     summary: Download Windows application installer
+ *     description: Downloads the Fylo Windows application installer zip file
  *     responses:
  *       200:
- *         description: Download URL generated successfully
+ *         description: Windows installer file
  *         content:
- *           application/json:
+ *           application/zip:
  *             schema:
- *               type: object
- *               properties:
- *                 downloadUrl:
- *                   type: string
- *                   description: Signed URL for downloading the Windows application
+ *               type: string
+ *               format: binary
  *       404:
- *         description: Download file not found
+ *         description: Windows installer not found
  *         content:
  *           application/json:
  *             schema:
@@ -32,6 +29,10 @@ const router = Router();
  *               properties:
  *                 error:
  *                   type: string
+ *                   example: Windows download not found
+ *                 message:
+ *                   type: string
+ *                   example: The Windows installation file is not available. Please contact support.
  *       500:
  *         description: Server error
  *         content:
@@ -42,7 +43,9 @@ const router = Router();
  *                 error:
  *                   type: string
  */
-router.get('/windows', getWindowsDownload);
+router.get('/windows', async (req: Request, res: Response) => {
+  await getWindowsDownload(req, res);
+});
 
 /**
  * @swagger
@@ -50,21 +53,18 @@ router.get('/windows', getWindowsDownload);
  *   get:
  *     tags:
  *       - Downloads
- *     summary: Download Mac application
- *     description: Get a signed URL for downloading the macOS desktop application
+ *     summary: Download Mac application installer
+ *     description: Downloads the Fylo Mac application installer zip file
  *     responses:
  *       200:
- *         description: Download URL generated successfully
+ *         description: Mac installer file
  *         content:
- *           application/json:
+ *           application/zip:
  *             schema:
- *               type: object
- *               properties:
- *                 downloadUrl:
- *                   type: string
- *                   description: Signed URL for downloading the Mac application
+ *               type: string
+ *               format: binary
  *       404:
- *         description: Download file not found
+ *         description: Mac installer not found
  *         content:
  *           application/json:
  *             schema:
@@ -72,6 +72,10 @@ router.get('/windows', getWindowsDownload);
  *               properties:
  *                 error:
  *                   type: string
+ *                   example: Mac download not found
+ *                 message:
+ *                   type: string
+ *                   example: The Mac installation file is not available. Please contact support.
  *       500:
  *         description: Server error
  *         content:
@@ -82,6 +86,8 @@ router.get('/windows', getWindowsDownload);
  *                 error:
  *                   type: string
  */
-router.get('/mac', getMacDownload);
+router.get('/mac', async (req: Request, res: Response) => {
+  await getMacDownload(req, res);
+});
 
 export default router;

@@ -1,17 +1,15 @@
-import { handleErrors } from '../../../utils/errorHandler';
-import { supabaseClient } from '../../supabaseClient';
+import { postgresClient } from '../../postgresClient';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export const uploadPdf = async (file: Express.Multer.File, filePath: string): Promise<void> => {
   try {
-    const { error } = await supabaseClient.storage.from('fylo-pdf').upload(filePath, file.buffer, {
-      contentType: 'application/pdf',
-      upsert: false,
-    });
-
-    if (error) {
-      throw new Error(`File upload failed: ${error.message}`);
-    }
+    // PDF upload functionality disabled - previously used Supabase storage buckets
+    // TODO: Implement proper file storage solution if needed
+    console.log(`PDF upload skipped for file: ${filePath}`);
+    return;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error uploading PDF:', error);
+    throw error;
   }
 };

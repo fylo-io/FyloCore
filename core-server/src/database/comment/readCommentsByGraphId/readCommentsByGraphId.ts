@@ -1,17 +1,18 @@
 import { Comment } from '../../../types/comment';
-import { handleErrors } from '../../../utils/errorHandler';
-import { COMMENT_TABLE, supabaseClient } from '../../supabaseClient';
+import { COMMENT_TABLE, pool } from '../../postgresClient';
 
-export const readCommentsByGraphId = async (graphId: string): Promise<Comment[] | undefined> => {
+export const readCommentsByGraphId = async (graphId: string): Promise<Comment[]> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(COMMENT_TABLE)
-      .select('*')
-      .eq('graph_id', graphId);
-
-    if (error) throw error;
-    return data;
+    const query = `
+      SELECT * FROM ${COMMENT_TABLE}
+      WHERE graph_id = $1
+      ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [graphId]);
+    
+    return result.rows as Comment[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading comments by graph ID:', error);
+    throw error;
   }
 };

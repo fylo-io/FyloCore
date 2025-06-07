@@ -1,26 +1,31 @@
 import { User } from '../../../types/user';
-import { handleErrors } from '../../../utils/errorHandler';
-import { GRAPH_TABLE, SHARE_TABLE, supabaseClient } from '../../supabaseClient';
+import { GRAPH_TABLE, SHARE_TABLE, pool } from '../../postgresClient';
 
 export const createShare = async (graphId: string, user: User): Promise<void> => {
   try {
-    const { error } = await supabaseClient.from(SHARE_TABLE).insert([
-      {
-        graph_id: graphId,
-        user_id: user.id,
-      },
-    ]);
+    const query = `
+      INSERT INTO ${SHARE_TABLE} (graph_id, user_id, created_at)
+      VALUES ($1, $2, $3)
+    `;
+    const values = [
+      graphId,
+      user.id,
+      new Date().toISOString()
+    ];
+    
+    await pool.query(query, values);
 
-    if (error) throw error;
+    // Get graph contributors using raw SQL
+    const graphResult = await pool.query(
+      `SELECT contributors FROM ${GRAPH_TABLE} WHERE id = $1`,
+      [graphId]
+    );
 
-    const { data: graphData, error: graphError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .select('contributors')
-      .eq('id', graphId)
-      .single();
+    if (graphResult.rows.length === 0) {
+      throw new Error('Graph not found');
+    }
 
-    if (graphError) throw graphError;
-
+    const graphData = graphResult.rows[0];
     const newContributor = {
       name: user.name || user.name,
       profile_color: user.profile_color,
@@ -35,14 +40,14 @@ export const createShare = async (graphId: string, user: User): Promise<void> =>
     if (!contributorExists) {
       const updatedContributors = [...currentContributors, newContributor];
 
-      const { error: updateError } = await supabaseClient
-        .from(GRAPH_TABLE)
-        .update({ contributors: updatedContributors })
-        .eq('id', graphId);
-
-      if (updateError) throw updateError;
+      // Update contributors using raw SQL
+      await pool.query(
+        `UPDATE ${GRAPH_TABLE} SET contributors = $1 WHERE id = $2`,
+        [JSON.stringify(updatedContributors), graphId]
+      );
     }
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error creating share:', error);
+    throw error;
   }
 };

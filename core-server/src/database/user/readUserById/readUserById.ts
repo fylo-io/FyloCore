@@ -1,18 +1,18 @@
 import { User } from '../../../types/user';
-import { handleErrors } from '../../../utils/errorHandler';
-import { USER_TABLE, supabaseClient } from '../../supabaseClient';
+import { USER_TABLE, pool } from '../../postgresClient';
 
-export const readUserById = async (userId: string): Promise<User | undefined> => {
+export const readUserById = async (id: string): Promise<User | null> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(USER_TABLE)
-      .select('*')
-      .eq('id', userId)
-      .single();
+    const query = `SELECT * FROM ${USER_TABLE} WHERE id = $1`;
+    const result = await pool.query(query, [id]);
 
-    if (error) throw error;
-    return data;
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0] as User;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading user by ID:', { data: null, error });
+    throw error;
   }
 };

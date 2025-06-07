@@ -1,6 +1,5 @@
 import { FyloNode } from '../../../types/graph';
-import { handleErrors } from '../../../utils/errorHandler';
-import { NODE_TABLE, supabaseClient } from '../../supabaseClient';
+import { pool } from '../../postgresClient';
 
 export const updateNodeData = async (
   nodeId: string,
@@ -9,35 +8,25 @@ export const updateNodeData = async (
   // eslint-disable-next-line
 ) => {
   try {
-    const { data: existingNode, error: fetchError } = await supabaseClient
-      .from(NODE_TABLE)
-      .select('*')
-      .filter('id', 'eq', nodeId)
-      .filter('graph_id', 'eq', graphId)
-      .single();
+    // First, fetch the existing node
+    const fetchQuery = 'SELECT * FROM knowledge_node WHERE id = $1 AND graph_id = $2';
+    const fetchResult = await pool.query(fetchQuery, [nodeId, graphId]);
 
-    if (fetchError) {
-      handleErrors('Error fetching node data:', fetchError);
-      throw fetchError;
-    }
-
-    if (!existingNode) {
+    if (fetchResult.rows.length === 0) {
       console.warn(`Node with id: ${nodeId} and graphId: ${graphId} not found.`);
       return;
     }
 
+    const existingNode = fetchResult.rows[0];
     const updatedData = { ...existingNode.data, ...newData };
 
-    const { data, error } = await supabaseClient
-      .from(NODE_TABLE)
-      .update({ data: updatedData })
-      .eq('id', nodeId)
-      .eq('graph_id', graphId)
-      .select();
+    // Update the node with new data
+    const updateQuery = 'UPDATE knowledge_node SET data = $1 WHERE id = $2 AND graph_id = $3 RETURNING *';
+    const updateResult = await pool.query(updateQuery, [JSON.stringify(updatedData), nodeId, graphId]);
 
-    if (error) throw error;
-    return data;
+    return updateResult.rows;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error updating node data:', error);
+    throw error;
   }
 };

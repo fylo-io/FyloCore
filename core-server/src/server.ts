@@ -5,7 +5,7 @@ import * as dotenv from 'dotenv';
 import express, { Request, Response } from 'express';
 import { Server as SocketIOServer } from 'socket.io';
 
-import { initializeDatabase } from './database/supabaseClient';
+import { initializeDatabase } from './database/postgresClient';
 import { errorMiddleware } from './middleware/errorMiddleware';
 import { handleGraphNamespace } from './namespaces/graphNamespace';
 import { handleUsersNamespace } from './namespaces/userNamespace';

@@ -93,7 +93,10 @@ export const updateUserProfileHandler = async (req: Request, res: Response): Pro
     }
 
     // Update user profile in database
-    const updateResult = await updateUserProfile(userId, profileColor, avatarUrl);
+    const updateResult = await updateUserProfile(userId, {
+      profile_color: profileColor,
+      ...(avatarUrl && { avatar_url: avatarUrl }),
+    });
 
     if (!updateResult.success) {
       throw new Error(updateResult.error || 'Failed to update user profile');

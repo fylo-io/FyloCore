@@ -266,8 +266,7 @@ export const handleGraphNamespace = (graphNamespace: Namespace): void => {
             break;
           }
           case 'STOP_NODE': {
-            await updateNode({
-              ...data,
+            await updateNode(data.id, {
               selected: false,
               dragging: false,
               data: { ...data.data, is_moving: false, picker_color: '' },
@@ -281,12 +280,12 @@ export const handleGraphNamespace = (graphNamespace: Namespace): void => {
             break;
           }
           case 'UPDATE_NODE': {
-            await updateNode(data);
+            await updateNode(data.id, data);
             graphNamespace.to(graphId).emit('update_node', data);
             break;
           }
           case 'DELETE_NODE': {
-            await deleteNode(data);
+            await deleteNode(data.id, graphId);
             graphNamespace.to(graphId).emit('delete_node', data);
             break;
           }
@@ -431,11 +430,11 @@ export const handleGraphNamespace = (graphNamespace: Namespace): void => {
 
           if (comment) {
             if (commentType === 'node') {
-              const updatedNode = await addCommentToNode(comment);
+              const updatedNode = await addCommentToNode(realId, comment);
               graphNamespace.emit('update_node', updatedNode);
               graphNamespace.to(graphId).emit('update_node', updatedNode);
             } else {
-              const updatedEdge = await addCommentToEdge(comment);
+              const updatedEdge = await addCommentToEdge(realId, comment);
               graphNamespace.emit('update_edge', updatedEdge);
               graphNamespace.to(graphId).emit('update_edge', updatedEdge);
             }

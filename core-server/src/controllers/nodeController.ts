@@ -75,7 +75,7 @@ export const deleteNodeHandler = async (req: Request, res: Response): Promise<vo
     }
 
     // Delete the node itself
-    await deleteNode(nodeData.id);
+    await deleteNode(nodeData.id, nodeData.graph_id);
 
     res.status(200).json({
       graphId: nodeData.graph_id,
@@ -150,7 +150,7 @@ export const updateNodeHandler = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    const updatedNode = await updateNode(data);
+    const updatedNode = await updateNode(data.id, data);
 
     if (updatedNode) {
       res.status(200).json({ node: updatedNode });
@@ -197,7 +197,7 @@ export const updateNodeHandlerConference = async (req: Request, res: Response): 
       return;
     }
 
-    const updatedNode = await updateNode({ ...data, id: nodeData.id });
+    const updatedNode = await updateNode(nodeData.id, { ...data });
     if (!updatedNode) {
       res.status(400).json({ error: 'Unable to update node' });
       return;

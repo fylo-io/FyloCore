@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { GraphType } from '../consts';
 
 import { createGraph } from '../database/graph/createGraph/createGraph';
 import { deleteGraph } from '../database/graph/deleteGraph/deleteGraph';
@@ -23,14 +24,14 @@ export const createGraphHandler = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const createdGraph = await createGraph(
+    const createdGraph = await createGraph({
       title,
       description,
-      creatorId,
-      creatorName,
-      creatorProfileColor,
-      sourceGraphId,
-    );
+      creator_id: creatorId,
+      type: GraphType.PRIVATE, // Default type
+      source_graph_id: sourceGraphId,
+      node_count: 0,
+    });
 
     if (createdGraph) {
       res.status(201).json({ graph: createdGraph });

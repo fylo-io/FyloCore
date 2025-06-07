@@ -1,16 +1,14 @@
 import { handleErrors } from '../../../utils/errorHandler';
-import { SHARE_TABLE, supabaseClient } from '../../supabaseClient';
+import { SHARE_TABLE, pool } from '../../postgresClient';
 
-export const readSharedUserIds = async (graphId: string): Promise<string[] | undefined> => {
+export const readSharedUserIds = async (graphId: string): Promise<string[]> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(SHARE_TABLE)
-      .select('user_id')
-      .eq('graph_id', graphId);
-
-    if (error) throw error;
-    return data.map((value) => value.user_id);
+    const query = `SELECT user_id FROM ${SHARE_TABLE} WHERE graph_id = $1`;
+    const result = await pool.query(query, [graphId]);
+    
+    return result.rows ? result.rows.map((row: any) => row.user_id) : [];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading shared user IDs:', error);
+    throw error;
   }
 };

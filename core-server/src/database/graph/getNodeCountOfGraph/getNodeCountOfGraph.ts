@@ -1,16 +1,15 @@
 import { handleErrors } from '../../../utils/errorHandler';
-import { NODE_TABLE, supabaseClient } from '../../supabaseClient';
+import { NODE_TABLE, pool } from '../../postgresClient';
 
-export const getNodeCountOfGraph = async (graphId: string): Promise<number | undefined> => {
+export const getNodeCountOfGraph = async (graphId: string): Promise<number> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(NODE_TABLE)
-      .select('*')
-      .eq('graph_id', graphId);
-
-    if (error) throw error;
-    return data.length;
+    const query = `SELECT COUNT(*) as count FROM ${NODE_TABLE} WHERE graph_id = $1`;
+    const result = await pool.query(query, [graphId]);
+    
+    return parseInt(result.rows[0].count, 10) || 0;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error getting node count:', error);
+    handleErrors('PostgreSQL Error:', error as Error);
+    return 0;
   }
 };

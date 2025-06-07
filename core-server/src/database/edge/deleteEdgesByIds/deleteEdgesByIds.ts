@@ -1,14 +1,15 @@
-import { handleErrors } from '../../../utils/errorHandler';
-import { EDGE_TABLE, supabaseClient } from '../../supabaseClient';
+import { EDGE_TABLE, pool } from '../../postgresClient';
 
 export const deleteEdgesByIds = async (edgeIds: string[]): Promise<void> => {
   try {
     if (edgeIds.length === 0) return;
-
-    const { error } = await supabaseClient.from(EDGE_TABLE).delete().in('id', edgeIds);
-
-    if (error) throw error;
+    
+    const placeholders = edgeIds.map((_, i) => `$${i + 1}`).join(',');
+    const query = `DELETE FROM ${EDGE_TABLE} WHERE id IN (${placeholders})`;
+    
+    await pool.query(query, edgeIds);
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error deleting edges by IDs:', error);
+    throw error;
   }
 };

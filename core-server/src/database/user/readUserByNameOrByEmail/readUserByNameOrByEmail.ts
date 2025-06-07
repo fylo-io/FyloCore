@@ -1,22 +1,19 @@
 import { User } from '../../../types/user';
-import { handleErrors } from '../../../utils/errorHandler';
-import { USER_TABLE, supabaseClient } from '../../supabaseClient';
+import { USER_TABLE, pool } from '../../postgresClient';
 
-export const readUserByNameOrByEmail = async (
-  name: string,
-  email: string,
-): Promise<User | undefined> => {
+export const readUserByNameOrByEmail = async (identifier: string): Promise<User | null> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(USER_TABLE)
-      .select('*')
-      .or(`name.eq.${name},email.eq.${email}`)
-      .not('password', 'is', null)
-      .single();
-
-    if (error) return undefined;
-    return data;
+    // Use raw SQL for OR condition since our PostgreSQL client doesn't have .or() method yet
+    const query = `SELECT * FROM ${USER_TABLE} WHERE name = $1 OR email = $1 LIMIT 1`;
+    const result = await pool.query(query, [identifier]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows[0];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading user by name or email:', error);
+    throw error;
   }
 };

@@ -1,35 +1,31 @@
-import { Comment } from '../../../types/comment';
 import { FyloEdge } from '../../../types/graph';
-import { handleErrors } from '../../../utils/errorHandler';
-import { EDGE_TABLE, supabaseClient } from '../../supabaseClient';
+import { Comment } from '../../../types/comment';
+import { EDGE_TABLE, pool } from '../../postgresClient';
 
-export const addCommentToEdge = async (comment: Comment): Promise<FyloEdge | undefined> => {
+export const addCommentToEdge = async (
+  edgeId: string,
+  comment: Comment,
+): Promise<FyloEdge | null> => {
   try {
-    const { data: currentEdge, error: fetchError } = await supabaseClient
-      .from(EDGE_TABLE)
-      .select('*')
-      .eq('id', comment.node_id)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    const newComments: Comment[] = currentEdge.data.comments
-      ? [...currentEdge.data.comments, comment]
-      : [comment];
-
-    const newData = { ...currentEdge.data, comments: newComments };
-
-    const { data: updatedEdge, error: updateError } = await supabaseClient
-      .from(EDGE_TABLE)
-      .update({ data: newData })
-      .eq('id', comment.node_id)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
-
-    return updatedEdge;
+    // First get the current edge to access existing comments
+    const getQuery = `SELECT * FROM ${EDGE_TABLE} WHERE id = $1`;
+    const getResult = await pool.query(getQuery, [edgeId]);
+    
+    if (!getResult.rows || getResult.rows.length === 0) {
+      return null;
+    }
+    
+    const edge = getResult.rows[0];
+    const currentComments = edge.data?.comments || [];
+    const updatedComments = [...currentComments, comment];
+    
+    // Update the edge with the new comment
+    const updateQuery = `UPDATE ${EDGE_TABLE} SET data = jsonb_set(data, '{comments}', $1::jsonb) WHERE id = $2 RETURNING *`;
+    const updateResult = await pool.query(updateQuery, [JSON.stringify(updatedComments), edgeId]);
+    
+    return updateResult.rows && updateResult.rows.length > 0 ? updateResult.rows[0] : null;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error adding comment to edge:', error);
+    throw error;
   }
 };

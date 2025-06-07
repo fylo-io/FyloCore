@@ -1,39 +1,20 @@
 import { FyloGraph } from '../../../types/graph';
-import { handleErrors } from '../../../utils/errorHandler';
-import { GRAPH_TABLE, SHARE_TABLE, supabaseClient } from '../../supabaseClient';
+import { GRAPH_TABLE, SHARE_TABLE, pool } from '../../postgresClient';
 
-export const readVisibleGraphsByUserId = async (
-  userId: string,
-): Promise<FyloGraph[] | undefined> => {
+export const readVisibleGraphsByUserId = async (userId: string): Promise<FyloGraph[]> => {
   try {
-    // Get graphs created by the user
-    const { data: createdGraphs, error: createdGraphsError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .select('*')
-      .eq('creator_id', userId);
-
-    if (createdGraphsError) throw createdGraphsError;
-
-    // Get shared graph IDs for the user
-    const { data: sharedGraphIds, error: sharedGraphIdsError } = await supabaseClient
-      .from(SHARE_TABLE)
-      .select('graph_id')
-      .eq('user_id', userId);
-
-    if (sharedGraphIdsError) throw sharedGraphIdsError;
-
-    const graphIds: string[] = sharedGraphIds.map((share) => share.graph_id);
-
-    // Get shared graphs based on the graph IDs
-    const { data: sharedGraphs, error: sharedGraphsError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .select('*')
-      .in('id', graphIds);
-
-    if (sharedGraphsError) throw sharedGraphsError;
-
-    return [...createdGraphs, ...sharedGraphs];
+    // Query for graphs owned by user OR shared with user
+    const query = `
+      SELECT DISTINCT g.* FROM ${GRAPH_TABLE} g
+      LEFT JOIN ${SHARE_TABLE} s ON g.id = s.graph_id
+      WHERE g.creator_id = $1 OR s.user_id = $1
+      ORDER BY g.created_at DESC
+    `;
+    const result = await pool.query(query, [userId]);
+    
+    return result.rows || [];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading visible graphs by user ID:', error);
+    throw error;
   }
 };

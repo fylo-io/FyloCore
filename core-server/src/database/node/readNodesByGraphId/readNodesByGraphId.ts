@@ -1,17 +1,14 @@
 import { FyloNode } from '../../../types/graph';
 import { handleErrors } from '../../../utils/errorHandler';
-import { NODE_TABLE, supabaseClient } from '../../supabaseClient';
+import { NODE_TABLE, pool } from '../../postgresClient';
 
 export const readNodesByGraphId = async (graphId: string): Promise<FyloNode[] | undefined> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(NODE_TABLE)
-      .select('*')
-      .eq('graph_id', graphId);
+    const query = `SELECT * FROM ${NODE_TABLE} WHERE graph_id = $1`;
+    const result = await pool.query(query, [graphId]);
 
-    if (error) throw error;
-    return data;
+    return result.rows as FyloNode[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    handleErrors('Error reading nodes by graph ID:', error as Error);
   }
 };

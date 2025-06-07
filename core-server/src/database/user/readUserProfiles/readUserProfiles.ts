@@ -1,14 +1,14 @@
 import { UserProfile } from '../../../types/user';
 import { handleErrors } from '../../../utils/errorHandler';
-import { USER_TABLE, supabaseClient } from '../../supabaseClient';
+import { USER_TABLE, pool } from '../../postgresClient';
 
 export const readUserProfiles = async (): Promise<UserProfile[] | undefined> => {
   try {
-    const { data, error } = await supabaseClient.from(USER_TABLE).select('id, name, profile_color');
+    const query = `SELECT id, name, profile_color FROM ${USER_TABLE}`;
+    const result = await pool.query(query);
 
-    if (error) throw error;
-    return data;
+    return result.rows as UserProfile[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    handleErrors('PostgreSQL Error:', error as Error);
   }
 };

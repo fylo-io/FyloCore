@@ -1,30 +1,27 @@
 import { User } from '../../../types/user';
-import { handleErrors } from '../../../utils/errorHandler';
-import { generateRandomColor } from '../../../utils/helpers';
-import { USER_TABLE, supabaseClient } from '../../supabaseClient';
+import { USER_TABLE, pool } from '../../postgresClient';
 
-export const createUser = async (
-  name: string,
-  email: string,
-  password: string,
-): Promise<User | undefined> => {
+export const createUser = async (newUser: Omit<User, 'id' | 'created_at'>): Promise<User | null> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(USER_TABLE)
-      .insert([
-        {
-          name,
-          email,
-          password,
-          profile_color: generateRandomColor(),
-        },
-      ])
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return data;
+    const query = `
+      INSERT INTO ${USER_TABLE} (name, email, password, type, verified, profile_color, avatar_url)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    const values = [
+      newUser.name,
+      newUser.email,
+      newUser.password,
+      newUser.type,
+      newUser.verified,
+      newUser.profile_color,
+      newUser.avatar_url
+    ];
+    
+    const result = await pool.query(query, values);
+    return result.rows[0] as User;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error creating user:', error);
+    throw error;
   }
 };

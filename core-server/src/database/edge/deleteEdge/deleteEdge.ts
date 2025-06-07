@@ -1,13 +1,16 @@
 import { FyloEdge } from '../../../types/graph';
-import { handleErrors } from '../../../utils/errorHandler';
-import { EDGE_TABLE, supabaseClient } from '../../supabaseClient';
+import { EDGE_TABLE, pool } from '../../postgresClient';
 
 export const deleteEdge = async (edge: FyloEdge): Promise<void> => {
   try {
-    const { error } = await supabaseClient.from(EDGE_TABLE).delete().eq('id', edge.id);
-
-    if (error) throw error;
+    const query = `DELETE FROM ${EDGE_TABLE} WHERE id = $1`;
+    const result = await pool.query(query, [edge.id]);
+    
+    if (result.rowCount === 0) {
+      console.warn(`Edge with id ${edge.id} not found for deletion`);
+    }
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error deleting edge:', error);
+    throw error;
   }
 };

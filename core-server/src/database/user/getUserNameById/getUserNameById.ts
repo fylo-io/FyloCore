@@ -1,17 +1,17 @@
-import { handleErrors } from '../../../utils/errorHandler';
-import { USER_TABLE, supabaseClient } from '../../supabaseClient';
+import { USER_TABLE, pool } from '../../postgresClient';
 
-export const getUserNameById = async (id: string): Promise<string | undefined> => {
+export const getUserNameById = async (id: string): Promise<string | null> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(USER_TABLE)
-      .select('name')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    return data.name;
+    const query = `SELECT name FROM ${USER_TABLE} WHERE id = $1 LIMIT 1`;
+    const result = await pool.query(query, [id]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows[0].name;
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error getting user name by ID:', error);
+    throw error;
   }
 };

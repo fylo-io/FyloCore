@@ -1,14 +1,20 @@
 import { Document } from '../../../types/document';
-import { handleErrors } from '../../../utils/errorHandler';
-import { DOCUMENT_TABLE, supabaseClient } from '../../supabaseClient';
+import { DOCUMENT_TABLE, pool } from '../../postgresClient';
 
-export const readDocumentsByDois = async (dois: string[]): Promise<Document[] | undefined> => {
+export const readDocumentsByDois = async (dois: string[]): Promise<Document[]> => {
   try {
-    const { data, error } = await supabaseClient.from(DOCUMENT_TABLE).select('*').in('doi', dois);
+    if (dois.length === 0) {
+      return [];
+    }
 
-    if (error) throw error;
-    return data;
+    const placeholders = dois.map((_, i) => `$${i + 1}`).join(', ');
+    const query = `SELECT * FROM ${DOCUMENT_TABLE} WHERE doi IN (${placeholders})`;
+    
+    const result = await pool.query(query, dois);
+    
+    return result.rows as Document[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading documents by DOIs:', error);
+    throw error;
   }
 };

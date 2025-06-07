@@ -1,17 +1,14 @@
 import { FyloEdge } from '../../../types/graph';
-import { handleErrors } from '../../../utils/errorHandler';
-import { EDGE_TABLE, supabaseClient } from '../../supabaseClient';
+import { EDGE_TABLE, pool } from '../../postgresClient';
 
-export const readEdgesByGraphId = async (graphId: string): Promise<FyloEdge[] | undefined> => {
+export const readEdgesByGraphId = async (graphId: string): Promise<FyloEdge[]> => {
   try {
-    const { data, error } = await supabaseClient
-      .from(EDGE_TABLE)
-      .select('*')
-      .eq('graph_id', graphId);
-
-    if (error) throw error;
-    return data;
+    const query = `SELECT * FROM ${EDGE_TABLE} WHERE graph_id = $1`;
+    const result = await pool.query(query, [graphId]);
+      
+    return result.rows as FyloEdge[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading edges by graph ID:', error);
+    throw error;
   }
 };

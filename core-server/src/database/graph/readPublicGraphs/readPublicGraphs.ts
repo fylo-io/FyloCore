@@ -1,18 +1,19 @@
 import { GraphType } from '../../../consts';
 import { FyloGraph } from '../../../types/graph';
-import { handleErrors } from '../../../utils/errorHandler';
-import { GRAPH_TABLE, supabaseClient } from '../../supabaseClient';
+import { GRAPH_TABLE, pool } from '../../postgresClient';
 
-export const readPublicGraphs = async (): Promise<FyloGraph[] | undefined> => {
+export const readPublicGraphs = async (): Promise<FyloGraph[]> => {
   try {
-    const { data: graphs, error: fetchGraphsError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .select('*')
-      .eq('type', GraphType.PUBLIC);
-
-    if (fetchGraphsError) throw fetchGraphsError;
-    return graphs;
+    const query = `
+      SELECT * FROM ${GRAPH_TABLE}
+      WHERE type = $1
+      ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [GraphType.PUBLIC]);
+    
+    return result.rows as FyloGraph[];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error reading public graphs:', error);
+    throw error;
   }
 };

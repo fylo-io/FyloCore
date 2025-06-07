@@ -1,32 +1,17 @@
-import { handleErrors } from '../../../utils/errorHandler';
-import { EDGE_TABLE, GRAPH_TABLE, NODE_TABLE, supabaseClient } from '../../supabaseClient';
+import { EDGE_TABLE, GRAPH_TABLE, NODE_TABLE, pool } from '../../postgresClient';
 
 export const deleteGraph = async (graphId: string): Promise<void> => {
   try {
-    // Delete the graph
-    const { error: deleteGraphError } = await supabaseClient
-      .from(GRAPH_TABLE)
-      .delete()
-      .eq('id', graphId);
-
-    if (deleteGraphError) throw deleteGraphError;
+    // Delete associated edges first
+    await pool.query(`DELETE FROM ${EDGE_TABLE} WHERE graph_id = $1`, [graphId]);
 
     // Delete associated nodes
-    const { error: deleteNodesError } = await supabaseClient
-      .from(NODE_TABLE)
-      .delete()
-      .eq('graph_id', graphId);
+    await pool.query(`DELETE FROM ${NODE_TABLE} WHERE graph_id = $1`, [graphId]);
 
-    if (deleteNodesError) throw deleteNodesError;
-
-    // Delete associated edges
-    const { error: deleteEdgesError } = await supabaseClient
-      .from(EDGE_TABLE)
-      .delete()
-      .eq('graph_id', graphId);
-
-    if (deleteEdgesError) throw deleteEdgesError;
+    // Delete the graph
+    await pool.query(`DELETE FROM ${GRAPH_TABLE} WHERE id = $1`, [graphId]);
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    console.error('Error deleting graph:', error);
+    throw error;
   }
 };

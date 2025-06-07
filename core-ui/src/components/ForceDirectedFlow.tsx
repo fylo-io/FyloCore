@@ -421,28 +421,35 @@ const ForceDirectedFlow: FC<ForceDirectedFlowProps> = ({
       nodeType &&
       nodeDescription
     ) {
-      const nodeData = nodes.filter(node => node.id === focusNodeId);
-      const updatedData = {
-        ...nodeData[0],
-        data: {
-          ...nodeData[0].data,
-          id: nodeTitle,
-          nodeType: nodeType,
-          description: nodeDescription
-        }
-      };
       setNodes(prevNodes => {
-        return prevNodes.map(node => {
+        const nodeToUpdate = prevNodes.find(node => node.id === focusNodeId);
+        if (!nodeToUpdate) return prevNodes;
+        
+        const updatedData = {
+          ...nodeToUpdate,
+          data: {
+            ...nodeToUpdate.data,
+            id: nodeTitle,
+            nodeType: nodeType,
+            description: nodeDescription
+          }
+        };
+        
+        const updatedNodes = prevNodes.map(node => {
           if (node.id === focusNodeId) {
-            return { ...updatedData };
+            return updatedData;
           } else {
             return node;
           }
         });
+        
+        // Emit socket update with the updated node data
+        socketRef.current?.emit("update_graph", "UPDATE_NODE", updatedData, graph.id);
+        
+        return updatedNodes;
       });
-      socketRef.current?.emit("update_graph", "UPDATE_NODE", updatedData, graph.id);
     }
-  }, [actionType, focusNodeId, graph.id, nodeTitle, nodeType, nodeDescription, nodes]);
+  }, [actionType, focusNodeId, graph.id, nodeTitle, nodeType, nodeDescription]);
 
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent, params: FinalConnectionState) => {
