@@ -7,7 +7,6 @@ import pdfParse from 'pdf-parse';
 import { MAX_FILE_SIZE } from '../consts';
 import { readDocumentsByDois } from '../database/document/readDocumentsByDois/readDocumentsByDois';
 import { saveDocument } from '../database/document/saveDocument/saveDocument';
-import { uploadPdf } from '../database/document/uploadPdf/uploadPdf';
 import { handleErrors } from '../utils/errorHandler';
 import { getDocumentFromDoi } from '../utils/helpers';
 
@@ -91,9 +90,6 @@ export const extractDocumentFromPdfHandler = async (req: Request, res: Response)
       res.status(400).json({ error: 'Invalid file type. Only PDF files are allowed.' });
       return;
     }
-
-    const filePath = `pdfs/${new Date().toISOString()}-${req.file.originalname}`;
-    await uploadPdf(req.file, filePath);
 
     const pdfData = await pdfParse(req.file.buffer);
     const pdfText = pdfData.text;

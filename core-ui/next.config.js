@@ -9,22 +9,6 @@ const nextConfig = {
       };
     }
     return config;
-  },
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "qwomvzpkcivakynvjghh.supabase.co",
-        port: "",
-        pathname: "/storage/v1/object/public/**"
-      },
-      {
-        protocol: "https",
-        hostname: "tadebrhspxgkpzogskgu.supabase.co",
-        port: "",
-        pathname: "/storage/v1/object/public/**"
-      }
-    ]
   }
 };
 

@@ -34,7 +34,7 @@ export const createUser = async (userData: Omit<User, 'id' | 'created_at'>): Pro
     return result.rows[0] as User;
   } catch (error) {
     console.error('Error creating user:', error);
-    handleErrors('Supabase Error:', error as Error);
+    handleErrors('PostgreSQL Error:', error as Error);
     return null;
   }
 };

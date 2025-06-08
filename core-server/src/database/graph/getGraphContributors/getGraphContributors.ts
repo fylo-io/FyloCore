@@ -27,6 +27,6 @@ export const getGraphContributors = async (
 
     return [...ownerResult.rows, ...viewerResult.rows];
   } catch (error) {
-    handleErrors('Supabase Error:', error as Error);
+    handleErrors('PostgreSQL Error:', error as Error);
   }
 };

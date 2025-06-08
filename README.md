@@ -25,15 +25,20 @@ cp core-server/.env.example core-server/.env
 cp core-ui/.env.example core-ui/.env
 ```
 
-**Edit `core-server/.env`** with your API keys:
+**Edit `core-server/.env`** with your configuration:
 ```env
-# Required: Anthropic Claude API for AI features
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+# Required: Database connection
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=fylocore
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_postgres_password
 
-# Required: Supabase database connection
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-SUPABASE_ANON_KEY=your_supabase_anon_key
+# Required: Anthropic API key for AI functionality  
+ANTHROPIC_API_KEY=your_anthropic_api_key
+
+# Optional: JWT secret for authentication (auto-generated if not provided)
+JWT_SECRET=your_jwt_secret
 
 # JWT Configuration
 JWT_SECRET=your_jwt_secret_here
@@ -67,17 +72,12 @@ ZOTERO_CLIENT_SECRET=your_zotero_client_secret
 ZOTERO_CALLBACK_URL=http://localhost:3000/api/zotero/callback
 ```
 
-> **Note**: You need valid Anthropic and Supabase API keys for the application to work properly.
+> **Note**: You need a valid Anthropic API key and PostgreSQL database for the application to work properly.
 
 ### Getting API Keys
 
-1. **Anthropic API Key**: Sign up at [console.anthropic.com](https://console.anthropic.com)
-2. **Supabase**: Create a project at [supabase.com](https://supabase.com)
-   - Copy your project URL and service role key from Settings → API
-3. **Generate JWT Secret**: Use a secure random string generator or run:
-   ```bash
-   openssl rand -base64 32
-   ```
+1. **Anthropic**: Get your API key from [console.anthropic.com](https://console.anthropic.com)
+2. **PostgreSQL**: Use the provided Docker setup or your own PostgreSQL instance
 
 ### 3. Run with Docker
 
@@ -112,7 +112,8 @@ docker-compose -f deploy/docker/docker-compose.dev.yml down
 ## 📋 Prerequisites
 
 - Docker and Docker Compose installed
-- API keys for Anthropic Claude and Supabase
+- API key for Anthropic Claude
+- PostgreSQL database (included in Docker setup)
 - Internet connection for downloading dependencies
 
 ## 🔧 Development Notes
