@@ -110,12 +110,11 @@ export const authOptions: AuthOptions = {
             throw new Error("Username or email already exists.");
           }
 
-          const hashedPassword = await hashPassword(password);
-
+          // Send plain password to backend - let backend handle hashing
           const createResponse = await axios.post(`${API_URL}/api/auth/create`, {
             username,
             email,
-            password: hashedPassword
+            password: password  // Send plain password, not hashed
           });
 
           if (createResponse.status !== 201 || !createResponse.data) {

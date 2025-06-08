@@ -52,13 +52,14 @@ services:
       context: ../core-ui
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://core-server:8000
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
     container_name: fylo-core-ui
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - DOCKER_ENVIRONMENT=true
     env_file:
       - ../core-ui/.env
     depends_on:
