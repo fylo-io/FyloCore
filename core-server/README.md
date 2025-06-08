@@ -1,4 +1,4 @@
-# Backend Server with Express.js and TypeScript
+# Core Server
 
 This repository contains a backend server built with **Express.js** and **TypeScript**. It provides a set of REST APIs and WebSocket functionalities to support various services.
 
@@ -14,8 +14,8 @@ This repository contains a backend server built with **Express.js** and **TypeSc
 1. Clone the repository to your local machine:
 
    ```bash
-   git clone https://github.com/fylo-io/FyloServer.git
-   cd FyloServer
+   git clone https://github.com/fylo-io/FyloCore.git
+   cd FyloCore/core-server
    ```
 
 2. Install the required packages:

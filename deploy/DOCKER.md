@@ -7,7 +7,7 @@ Simple Docker setup for developers to run FyloCore locally with PostgreSQL.
 ### 1. Clone and Setup
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/fylo-io/FyloCore.git
 cd FyloCore
 
 # Copy environment file templates
@@ -25,11 +25,11 @@ cp core-ui/.env.example core-ui/.env
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 # PostgreSQL database (automatically configured in Docker)
-DB_HOST=postgres
-DB_PORT=5432
-DB_NAME=fylocore
-DB_USER=fylocore
-DB_PASSWORD=fylocore_password
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=fylocore
+POSTGRES_USER=fylocore
+POSTGRES_PASSWORD=fylocore_password
 
 # Required for authentication
 JWT_SECRET=your_jwt_secret_here
@@ -53,40 +53,178 @@ ZOTERO_CLIENT_SECRET=your_zotero_client_secret
 ZOTERO_CALLBACK_URL=http://localhost:3000/api/zotero/callback
 ```
 
-### 3. Build and Run
+### 3. Run with Docker
+
+From the project root:
 ```bash
-# Navigate to deploy directory
 cd deploy
-
-# Easy way
 ./start-docker.sh
+```
 
-# Manual way
+Or manually:
+```bash
+cd deploy
 docker-compose up --build
 ```
 
-## What Gets Started
+### 4. What Gets Started
 
-- **PostgreSQL Database**: PostgreSQL 15 with uuid-ossp extension on port 5433
-- **Core Server** (Backend): Node.js API server on port 8000
-- **Core UI** (Frontend): React application on port 3000
+- **PostgreSQL Database**: Port 5433 (external), auto-initialized with UUID extension
+- **Core Server API**: Port 8000, connects to PostgreSQL
+- **Core UI Frontend**: Port 3000, connects to Core Server
 
-**All services run in containers** - no external dependencies required.
+### 5. Access Points
 
-## Access Points
+- **Application**: http://localhost:3000
+- **API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/api-docs
+- **Health Check**: http://localhost:8000/api/health
+- **Database**: localhost:5433 (external port)
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/api-docs
-- PostgreSQL Database: localhost:5433 (username: fylocore, database: fylocore)
-
-## Stopping the Application
+### 6. Stop Everything
 
 ```bash
-# From the deploy/ directory
+cd deploy
 ./stop-docker.sh
-# OR
+```
+
+Or:
+```bash
+cd deploy
 docker-compose down
+```
+
+## Container Details
+
+### PostgreSQL Container
+- **Image**: postgres:15
+- **External Port**: 5433
+- **Internal Port**: 5432
+- **Database**: fylocore
+- **Auto-initialization**: UUID extension installed
+- **Data Persistence**: Docker volume
+
+### Core Server Container
+- **Runtime**: Node.js 18
+- **Mode**: Development (npm run dev)
+- **Health Check**: /api/health endpoint
+- **Dependencies**: PostgreSQL container
+
+### Core UI Container
+- **Framework**: Next.js
+- **Mode**: Development (npm start)
+- **Environment**: DOCKER_ENVIRONMENT=true
+- **Dependencies**: Core Server container
+
+## Troubleshooting
+
+### Port Conflicts
+If you get port errors:
+```bash
+# Check what's using the ports
+lsof -i :3000
+lsof -i :5433
+lsof -i :8000
+
+# Stop any conflicting services
+sudo service postgresql stop  # If you have local PostgreSQL
+```
+
+### Container Health Issues
+```bash
+# Check container status
+docker-compose ps
+
+# View logs
+docker-compose logs core-server
+docker-compose logs core-ui
+docker-compose logs postgres
+
+# Restart specific service
+docker-compose restart core-server
+```
+
+### Clean Rebuild
+```bash
+# Stop everything
+docker-compose down
+
+# Remove old images
+docker-compose down --rmi all
+
+# Clean rebuild
+docker-compose build --no-cache
+docker-compose up
+```
+
+### Database Issues
+```bash
+# Connect to PostgreSQL directly
+docker exec -it fylo-postgres psql -U fylocore -d fylocore
+
+# Check if tables exist
+\dt
+
+# Check UUID extension
+\dx
+```
+
+## Environment Variables Reference
+
+### Required Variables
+- `ANTHROPIC_API_KEY`: Get from [console.anthropic.com](https://console.anthropic.com)
+- `JWT_SECRET`: Any secure random string
+- `NEXTAUTH_SECRET`: Any secure random string (can be same as JWT_SECRET)
+
+### Optional Variables
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: For Google OAuth
+- `ZOTERO_CLIENT_KEY`, `ZOTERO_CLIENT_SECRET`: For Zotero integration
+- `RESEND_API_KEY`: For email functionality
+
+### Auto-configured Variables (Don't change)
+- Database connection variables are set automatically for Docker
+- API URLs are configured for container communication
+
+## Development Tips
+
+1. **File Watching**: Changes to code will auto-reload in development mode
+2. **Database Persistence**: Database data persists between container restarts
+3. **Log Files**: Check `core-server/logs/` for application logs
+4. **Container Communication**: Services communicate via Docker network names
+5. **Environment Switching**: DOCKER_ENVIRONMENT=true switches API URLs automatically
+
+## File Structure
+
+```
+FyloCore/
+├── core-ui/           # Frontend React application
+├── core-server/       # Backend Node.js API
+└── deploy/           # Docker deployment files
+    ├── docker-compose.yml
+    ├── init.sql      # PostgreSQL initialization
+    ├── start-docker.sh
+    ├── stop-docker.sh
+    └── DOCKER.md
+```
+
+## Database Setup
+
+### Automatic Initialization
+The PostgreSQL database is automatically configured with:
+- `uuid-ossp` extension for UUID generation
+- Proper database and user setup
+- Required permissions
+
+The `init.sql` script runs automatically on first container startup.
+
+### Database Access
+```bash
+# From deploy/ directory
+# Connect to PostgreSQL database
+docker-compose exec postgres psql -U fylocore -d fylocore
+
+# View database tables
+docker-compose exec postgres psql -U fylocore -d fylocore -c "\dt"
 ```
 
 ## Development Workflow
@@ -117,69 +255,11 @@ docker-compose logs -f core-ui
 docker-compose logs -f postgres
 ```
 
-## Database Setup
+## Stopping the Application
 
-### Automatic Initialization
-The PostgreSQL database is automatically configured with:
-- `uuid-ossp` extension for UUID generation
-- Proper database and user setup
-- Required permissions
-
-The `init.sql` script runs automatically on first container startup.
-
-### Database Access
 ```bash
-# From deploy/ directory
-# Connect to PostgreSQL database
-docker-compose exec postgres psql -U fylocore -d fylocore
-
-# View database tables
-docker-compose exec postgres psql -U fylocore -d fylocore -c "\dt"
-```
-
-## File Structure
-
-```
-FyloCore/
-├── core-ui/           # Frontend React application
-├── core-server/       # Backend Node.js API
-└── deploy/           # Docker deployment files
-    ├── docker-compose.yml
-    ├── init.sql      # PostgreSQL initialization
-    ├── start-docker.sh
-    ├── stop-docker.sh
-    └── DOCKER.md
-```
-
-## Troubleshooting
-
-### Container Health Checks
-```bash
-# From deploy/ directory
-# Check container status
-docker-compose ps
-
-# Check health status
-docker inspect fylo-core-server | grep Health
-docker inspect fylo-core-ui | grep Health
-```
-
-### Common Issues
-1. **Port conflicts**: Make sure ports 3000, 8000, and 5433 are not in use
-2. **Environment variables**: Ensure .env files are properly configured
-3. **Database connection**: PostgreSQL auto-initializes with uuid-ossp extension
-4. **Build issues**: Try `docker-compose build --no-cache` for clean rebuild
-5. **Permission errors**: Ensure Docker has proper permissions
-
-### Clean Reset
-```bash
-# From deploy/ directory
-# Stop and remove everything including volumes
-docker-compose down -v
-
-# Remove Docker images (optional)
-docker-compose down --rmi all
-
-# Start fresh
-./start-docker.sh
+# From the deploy/ directory
+./stop-docker.sh
+# OR
+docker-compose down
 ```

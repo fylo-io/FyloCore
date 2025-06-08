@@ -12,13 +12,7 @@ cd FyloCore
 
 ### 2. Set Up Environment Variables
 
-**Option A: Use the setup script (Easiest)**
-```bash
-./setup-env.sh
-# Then edit the created .env files with your API keys
-```
-
-**Option B: Copy manually**
+**Copy environment templates**
 ```bash
 # Copy environment templates
 cp core-server/.env.example core-server/.env
@@ -39,9 +33,6 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 
 # Optional: JWT secret for authentication (auto-generated if not provided)
 JWT_SECRET=your_jwt_secret
-
-# JWT Configuration
-JWT_SECRET=your_jwt_secret_here
 
 # Optional: Email service
 RESEND_API_KEY=your_resend_api_key_for_emails
@@ -81,14 +72,16 @@ ZOTERO_CALLBACK_URL=http://localhost:3000/api/zotero/callback
 
 ### 3. Run with Docker
 
-**Option A: One Command (Recommended)**
+**Quick Start (Recommended)**
 ```bash
+cd deploy
 ./start-docker.sh
 ```
 
-**Option B: Manual Docker Compose**
+**Manual Docker Compose**
 ```bash
-docker-compose -f deploy/docker/docker-compose.dev.yml up --build
+cd deploy
+docker-compose up --build
 ```
 
 ### 4. Access the Application
@@ -96,16 +89,19 @@ docker-compose -f deploy/docker/docker-compose.dev.yml up --build
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/api-docs
+- **PostgreSQL**: localhost:5433 (external port)
 
 ### 5. Stop the Application
 ```bash
+cd deploy
 ./stop-docker.sh
 # OR
-docker-compose -f deploy/docker/docker-compose.dev.yml down
+docker-compose down
 ```
 
 ## 🛠️ What Gets Built
 
+- **PostgreSQL Database**: Persistent data storage on port 5433
 - **Core Server** (Backend): Node.js/TypeScript API on port 8000
 - **Core UI** (Frontend): Next.js application on port 3000
 
@@ -120,24 +116,23 @@ docker-compose -f deploy/docker/docker-compose.dev.yml down
 
 - Environment variables are loaded from `core-server/.env` and `core-ui/.env`
 - Logs are saved to `core-server/logs/`
-- No additional services (like Redis) are required
-- The build process handles all dependencies automatically
+- Database data is persisted in Docker volumes
+- The PostgreSQL database is automatically initialized with required extensions
 
 ## 📖 Documentation
 
-- [Detailed Docker Guide](DOCKER.md)
+- [Detailed Docker Guide](deploy/DOCKER.md)
 - [API Documentation](docs/api/README.md)
 - [Project Documentation](docs/README.md)
 
 ## 🛠️ Troubleshooting
 
 **Common Issues:**
-- **Port conflicts**: Ensure ports 3000 and 8000 are available
+- **Port conflicts**: Ensure ports 3000, 8000, and 5433 are available
 - **Docker not running**: Start Docker Desktop or Docker daemon
 - **Build failures**: Try `docker system prune` to clean up Docker cache
 - **API connection errors**: Verify your `.env` files have correct API keys
 
 **Need Help?**
-- Check the [Detailed Docker Guide](DOCKER.md) for more setup options
-- Review [docs/deployment/quick-start.md](docs/deployment/quick-start.md) for detailed instructions
+- Check the [Detailed Docker Guide](deploy/DOCKER.md) for more setup options
 - Look at example environment variables in `.env.example` files
