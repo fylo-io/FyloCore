@@ -18,14 +18,11 @@ const router = Router();
  *     tags:
  *       - Graphs
  *     summary: Get a graph by ID
- *     description: Retrieve a specific graph by its unique identifier
+ *     description: Retrieve a specific graph by its unique identifier with all associated nodes and edges
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: graphId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the graph to retrieve
+ *       - $ref: '#/components/parameters/GraphId'
  *     responses:
  *       200:
  *         description: Graph retrieved successfully
@@ -36,8 +33,22 @@ const router = Router();
  *               properties:
  *                 graph:
  *                   $ref: '#/components/schemas/FyloGraph'
+ *             example:
+ *               graph:
+ *                 id: "graph-abc123"
+ *                 name: "Research Project Graph"
+ *                 description: "Graph for tracking research papers and concepts"
+ *                 created_at: "2023-04-01T12:00:00Z"
+ *                 is_public: false
+ *                 owner_id: "user-xyz789"
  *       400:
- *         description: Unable to fetch graph or invalid input
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/id/:graphId', getGraphByIdHandler);
 
@@ -49,6 +60,8 @@ router.get('/id/:graphId', getGraphByIdHandler);
  *       - Graphs
  *     summary: Get all public graphs
  *     description: Retrieve all public graphs with node count and contributor information
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Public graphs retrieved successfully
@@ -71,8 +84,27 @@ router.get('/id/:graphId', getGraphByIdHandler);
  *                             type: array
  *                             items:
  *                               $ref: '#/components/schemas/UserProfile'
+ *             example:
+ *               graphs:
+ *                 - id: "graph-abc123"
+ *                   name: "Research Project Graph"
+ *                   description: "Graph for tracking research papers and concepts"
+ *                   created_at: "2023-04-01T12:00:00Z"
+ *                   is_public: true
+ *                   owner_id: "user-xyz789"
+ *                   node_count: 10
+ *                   contributors:
+ *                     - id: "user-xyz789"
+ *                       name: "John Doe"
+ *                       profile_color: "#3498db"
  *       400:
- *         description: Unable to fetch public graphs
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/public', getPublicGraphsHandler);
 
@@ -84,13 +116,10 @@ router.get('/public', getPublicGraphsHandler);
  *       - Graphs
  *     summary: Get visible graphs for a user
  *     description: Retrieve all graphs visible to a specific user (owned and shared)
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: userId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the user
+ *       - $ref: '#/components/parameters/UserId'
  *     responses:
  *       200:
  *         description: Visible graphs retrieved successfully
@@ -113,8 +142,27 @@ router.get('/public', getPublicGraphsHandler);
  *                             type: array
  *                             items:
  *                               $ref: '#/components/schemas/UserProfile'
+ *             example:
+ *               graphs:
+ *                 - id: "graph-abc123"
+ *                   name: "Research Project Graph"
+ *                   description: "Graph for tracking research papers and concepts"
+ *                   created_at: "2023-04-01T12:00:00Z"
+ *                   is_public: false
+ *                   owner_id: "user-xyz789"
+ *                   node_count: 10
+ *                   contributors:
+ *                     - id: "user-xyz789"
+ *                       name: "John Doe"
+ *                       profile_color: "#3498db"
  *       400:
- *         description: Unable to fetch visible graphs or invalid input
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/user/:userId', getVisibleGraphsByUserHandler);
 
@@ -126,13 +174,10 @@ router.get('/user/:userId', getVisibleGraphsByUserHandler);
  *       - Graphs
  *     summary: Get graph viewers/contributors
  *     description: Retrieve all users who have access to view a specific graph
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: graphId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the graph
+ *       - $ref: '#/components/parameters/GraphId'
  *     responses:
  *       200:
  *         description: Graph viewers retrieved successfully
@@ -145,8 +190,19 @@ router.get('/user/:userId', getVisibleGraphsByUserHandler);
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/UserProfile'
+ *             example:
+ *               viewers:
+ *                 - id: "user-xyz789"
+ *                   name: "John Doe"
+ *                   profile_color: "#3498db"
  *       400:
- *         description: Unable to fetch viewers or invalid input
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/viewers/:graphId', getGraphViewersHandler);
 
@@ -158,6 +214,8 @@ router.get('/viewers/:graphId', getGraphViewersHandler);
  *       - Graphs
  *     summary: Create a new graph
  *     description: Create a new graph with the provided details
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -189,6 +247,13 @@ router.get('/viewers/:graphId', getGraphViewersHandler);
  *               sourceGraphId:
  *                 type: string
  *                 description: Optional ID of a source graph to clone from
+ *             example:
+ *               title: "Research Project Graph"
+ *               description: "Graph for tracking research papers and concepts"
+ *               creatorId: "user-xyz789"
+ *               creatorName: "John Doe"
+ *               creatorProfileColor: "#3498db"
+ *               sourceGraphId: "graph-abc123"
  *     responses:
  *       201:
  *         description: Graph created successfully
@@ -199,8 +264,22 @@ router.get('/viewers/:graphId', getGraphViewersHandler);
  *               properties:
  *                 graph:
  *                   $ref: '#/components/schemas/FyloGraph'
+ *             example:
+ *               graph:
+ *                 id: "graph-abc123"
+ *                 name: "Research Project Graph"
+ *                 description: "Graph for tracking research papers and concepts"
+ *                 created_at: "2023-04-01T12:00:00Z"
+ *                 is_public: false
+ *                 owner_id: "user-xyz789"
  *       400:
- *         description: Unable to create graph or invalid input
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/', createGraphHandler);
 
@@ -212,6 +291,8 @@ router.post('/', createGraphHandler);
  *       - Graphs
  *     summary: Delete a graph
  *     description: Delete a graph by its ID
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -224,6 +305,8 @@ router.post('/', createGraphHandler);
  *               id:
  *                 type: string
  *                 description: The ID of the graph to delete
+ *             example:
+ *               id: "graph-abc123"
  *     responses:
  *       200:
  *         description: Graph deleted successfully
@@ -234,8 +317,16 @@ router.post('/', createGraphHandler);
  *               properties:
  *                 message:
  *                   type: string
+ *             example:
+ *               message: "Graph deleted successfully"
  *       400:
- *         description: Unable to delete graph or invalid input
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.delete('/', deleteGraphHandler);
 

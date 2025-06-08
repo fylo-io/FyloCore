@@ -6,18 +6,20 @@ const router = Router();
 
 /**
  * @swagger
- * /api/notes/{userName}:
+ * /api/notes/{username}:
  *   get:
  *     tags:
  *       - Notes
  *     summary: Get notes by username
  *     description: Retrieve all notes created by a specific user
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: userName
+ *       - name: username
+ *         in: path
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
  *         description: Username of the note author
  *     responses:
  *       200:
@@ -30,18 +32,35 @@ const router = Router();
  *                 notes:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Note'
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Note'
+ *                       - type: object
+ *                         properties:
+ *                           author_name:
+ *                             type: string
+ *                             description: Name of the note author
+ *                           author_profile_color:
+ *                             type: string
+ *                             description: Profile color of the author
+ *             example:
+ *               notes:
+ *                 - id: "note-abc123"
+ *                   created_at: "2023-04-01T12:00:00Z"
+ *                   author: "user-abc123"
+ *                   author_name: "John Doe"
+ *                   author_profile_color: "#3498db"
+ *                   node_id: "node-xyz789"
+ *                   text: "Important research findings about neural networks"
  *       400:
- *         description: Unable to fetch notes or invalid input
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
-router.get('/:userName', getNotesByUserNameHandler);
+router.get('/:username', getNotesByUserNameHandler);
 
 /**
  * @swagger
@@ -51,6 +70,8 @@ router.get('/:userName', getNotesByUserNameHandler);
  *       - Notes
  *     summary: Create a new note
  *     description: Create a new note associated with a node
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -82,14 +103,13 @@ router.get('/:userName', getNotesByUserNameHandler);
  *                 note:
  *                   $ref: '#/components/schemas/Note'
  *       400:
- *         description: Unable to create note or invalid input
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/', createNoteHandler);
 

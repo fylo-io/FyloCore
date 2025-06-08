@@ -17,6 +17,8 @@ const router = Router();
  *       - Documents
  *     summary: Extract document information from DOIs
  *     description: Fetch document metadata from DOIs, retrieve from database if already exists
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -46,6 +48,8 @@ const router = Router();
  *                     $ref: '#/components/schemas/Document'
  *       400:
  *         description: Bad request, missing DOIs or unable to fetch documents
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         description: Server error
  */
@@ -59,6 +63,8 @@ router.post('/doi', extractDocumentFromDoiHandler);
  *       - Documents
  *     summary: Extract content and metadata from PDF file
  *     description: Upload a PDF file to extract its text content and metadata
+ *     security:
+ *       - bearerAuth: []
  *     consumes:
  *       - multipart/form-data
  *     requestBody:
@@ -86,6 +92,8 @@ router.post('/doi', extractDocumentFromDoiHandler);
  *                       description: Extracted text content from the PDF
  *       400:
  *         description: Bad request, missing file, invalid file type, or file size exceeds limit
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         description: Server error while processing the file
  */
@@ -99,6 +107,8 @@ router.post('/pdf', upload.single('file'), extractDocumentFromPdfHandler);
  *       - Documents
  *     summary: Extract content from a PDF URL
  *     description: Fetch and extract text content from a PDF URL
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -123,6 +133,8 @@ router.post('/pdf', upload.single('file'), extractDocumentFromPdfHandler);
  *                 text:
  *                   type: string
  *                   description: Extracted text content from the PDF
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
  *         description: Server error while fetching or processing the PDF
  */

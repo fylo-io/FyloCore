@@ -11,7 +11,7 @@ const router = Router();
  *     tags:
  *       - Downloads
  *     summary: Download Windows application installer
- *     description: Downloads the Fylo Windows application installer zip file
+ *     description: Downloads the Fylo Windows application installer zip file (public endpoint)
  *     responses:
  *       200:
  *         description: Windows installer file
@@ -21,27 +21,9 @@ const router = Router();
  *               type: string
  *               format: binary
  *       404:
- *         description: Windows installer not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Windows download not found
- *                 message:
- *                   type: string
- *                   example: The Windows installation file is not available. Please contact support.
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/windows', async (req: Request, res: Response) => {
   await getWindowsDownload(req, res);
@@ -54,7 +36,7 @@ router.get('/windows', async (req: Request, res: Response) => {
  *     tags:
  *       - Downloads
  *     summary: Download Mac application installer
- *     description: Downloads the Fylo Mac application installer zip file
+ *     description: Downloads the Fylo Mac application installer zip file (public endpoint)
  *     responses:
  *       200:
  *         description: Mac installer file
@@ -64,27 +46,9 @@ router.get('/windows', async (req: Request, res: Response) => {
  *               type: string
  *               format: binary
  *       404:
- *         description: Mac installer not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Mac download not found
- *                 message:
- *                   type: string
- *                   example: The Mac installation file is not available. Please contact support.
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/mac', async (req: Request, res: Response) => {
   await getMacDownload(req, res);

@@ -10,15 +10,12 @@ const router = Router();
  *   get:
  *     tags:
  *       - Comments
- *     summary: Get comments by graph ID
- *     description: Retrieve all comments associated with a specific graph
+ *     summary: Get all comments for a graph
+ *     description: Retrieve all comments associated with a specific graph ID including author information
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: graphId
- *         schema:
- *           type: string
- *         required: true
- *         description: The ID of the graph to fetch comments for
+ *       - $ref: '#/components/parameters/GraphId'
  *     responses:
  *       200:
  *         description: Comments retrieved successfully
@@ -30,25 +27,33 @@ const router = Router();
  *                 comments:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Comment'
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Comment'
+ *                       - type: object
+ *                         properties:
+ *                           author_name:
+ *                             type: string
+ *                             description: Name of the comment author
+ *                           author_profile_color:
+ *                             type: string
+ *                             description: Profile color of the comment author
+ *             example:
+ *               comments:
+ *                 - id: "comment-abc123"
+ *                   graph_id: "graph-xyz789"
+ *                   author: "user-abc123"
+ *                   author_name: "John Doe"
+ *                   author_profile_color: "#3498db"
+ *                   text: "This is an insightful connection between concepts"
+ *                   created_at: "2023-04-01T12:00:00Z"
  *       400:
- *         description: Unable to fetch comments
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/:graphId', getCommentsByGraphIdHandler);
 

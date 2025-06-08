@@ -15,14 +15,11 @@ const router = Router();
  *     tags:
  *       - Edges
  *     summary: Get all edges for a graph
- *     description: Retrieve all edges that belong to a specific graph
+ *     description: Retrieve all edges (connections) associated with a specific graph ID
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: graphId
- *         schema:
- *           type: string
- *         required: true
- *         description: Unique ID of the graph
+ *       - $ref: '#/components/parameters/GraphId'
  *     responses:
  *       200:
  *         description: Edges retrieved successfully
@@ -35,10 +32,23 @@ const router = Router();
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/FyloEdge'
+ *             example:
+ *               edges:
+ *                 - id: "edge-abc123"
+ *                   graph_id: "graph-xyz789"
+ *                   source_node_id: "node-source123"
+ *                   target_node_id: "node-target456"
+ *                   type: "relates_to"
+ *                   label: "influences"
+ *                   created_at: "2023-04-01T12:00:00Z"
  *       400:
- *         description: Unable to fetch edges
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/:graphId', getEdgesByGraphIdHandler);
 
@@ -50,6 +60,8 @@ router.get('/:graphId', getEdgesByGraphIdHandler);
  *       - Edges
  *     summary: Create a new edge
  *     description: Create a new connection between two nodes
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -66,10 +78,23 @@ router.get('/:graphId', getEdgesByGraphIdHandler);
  *               properties:
  *                 edge:
  *                   $ref: '#/components/schemas/FyloEdge'
+ *             example:
+ *               edge:
+ *                 id: "edge-abc123"
+ *                 graph_id: "graph-xyz789"
+ *                 source_node_id: "node-source123"
+ *                 target_node_id: "node-target456"
+ *                 type: "relates_to"
+ *                 label: "influences"
+ *                 created_at: "2023-04-01T12:00:00Z"
  *       400:
- *         description: Unable to create edge or invalid input
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/', createNewEdgeHandler);
 
@@ -81,6 +106,8 @@ router.post('/', createNewEdgeHandler);
  *       - Edges
  *     summary: Check if two nodes are connected
  *     description: Verify if there is an edge between two specific nodes
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -108,10 +135,16 @@ router.post('/', createNewEdgeHandler);
  *                 connected:
  *                   type: boolean
  *                   description: Whether the nodes are connected
+ *             example:
+ *               connected: true
  *       400:
- *         description: Missing source or target
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/connected', checkIfConnectedHandler);
 

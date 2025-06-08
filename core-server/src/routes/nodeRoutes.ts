@@ -18,14 +18,11 @@ const router = Router();
  *     tags:
  *       - Nodes
  *     summary: Get all nodes for a graph
- *     description: Retrieve all nodes associated with a specific graph ID
+ *     description: Retrieve all nodes associated with a specific graph ID including their positions and content
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: graphId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the graph
+ *       - $ref: '#/components/parameters/GraphId'
  *     responses:
  *       200:
  *         description: Nodes retrieved successfully
@@ -38,10 +35,26 @@ const router = Router();
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/FyloNode'
+ *             example:
+ *               nodes:
+ *                 - id: "node-abc123"
+ *                   graph_id: "graph-xyz789"
+ *                   title: "AI Research Paper"
+ *                   content: "Important findings about neural networks"
+ *                   type: "document"
+ *                   x: 100
+ *                   y: 200
+ *                   width: 300
+ *                   height: 150
+ *                   created_at: "2023-04-01T12:00:00Z"
  *       400:
- *         description: Bad request, unable to fetch nodes or missing graph ID
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.get('/:graphId', getNodesByGraphIdHandler);
 
@@ -53,6 +66,8 @@ router.get('/:graphId', getNodesByGraphIdHandler);
  *       - Nodes
  *     summary: Create a new node
  *     description: Create a new node in a graph
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -70,9 +85,11 @@ router.get('/:graphId', getNodesByGraphIdHandler);
  *                 node:
  *                   $ref: '#/components/schemas/FyloNode'
  *       400:
- *         description: Bad request, unable to create node or invalid data
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/', createNodeHandler);
 
@@ -84,6 +101,8 @@ router.post('/', createNodeHandler);
  *       - Nodes
  *     summary: Save node positions
  *     description: Save the positions of multiple nodes at once
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -122,9 +141,11 @@ router.post('/', createNodeHandler);
  *                 message:
  *                   type: string
  *       400:
- *         description: Bad request, missing data
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.post('/saveNodePositions', saveNodePositionsHandler);
 
@@ -136,6 +157,8 @@ router.post('/saveNodePositions', saveNodePositionsHandler);
  *       - Nodes
  *     summary: Update a node
  *     description: Update a node's data
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -180,9 +203,13 @@ router.post('/saveNodePositions', saveNodePositionsHandler);
  *                 node:
  *                   $ref: '#/components/schemas/FyloNode'
  *       400:
- *         description: Bad request, unable to update node or invalid data
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.put('/', updateNodeHandler);
 
@@ -194,13 +221,10 @@ router.put('/', updateNodeHandler);
  *       - Nodes
  *     summary: Update a node for the conference
  *     description: Update a node's data for the conference with specific permissions
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the node to update
+ *       - $ref: '#/components/parameters/NodeId'
  *     requestBody:
  *       required: true
  *       content:
@@ -230,13 +254,15 @@ router.put('/', updateNodeHandler);
  *                 message:
  *                   type: string
  *       400:
- *         description: Bad request, unable to update node or invalid data
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Unauthorized to update this node
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Node or graph not found
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.put('/:id', updateNodeHandlerConference);
 
@@ -248,13 +274,10 @@ router.put('/:id', updateNodeHandlerConference);
  *       - Nodes
  *     summary: Delete a node
  *     description: Delete a node and its associated edges
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the node to delete
+ *       - $ref: '#/components/parameters/NodeId'
  *     responses:
  *       200:
  *         description: Node deleted successfully
@@ -273,13 +296,15 @@ router.put('/:id', updateNodeHandlerConference);
  *                 message:
  *                   type: string
  *       400:
- *         description: Bad request, missing node ID
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  *       403:
- *         description: Unauthorized to delete this node
+ *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Node or graph not found
+ *         $ref: '#/components/responses/NotFound'
  *       500:
- *         description: Server error
+ *         $ref: '#/components/responses/InternalServerError'
  */
 router.delete('/:id', deleteNodeHandler);
 
