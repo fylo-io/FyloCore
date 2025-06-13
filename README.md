@@ -17,7 +17,7 @@ Advanced knowledge graph platform for collaborative research and AI-powered cont
 
 
 [![Discord](https://img.shields.io/discord/1314801574169673738?logo=discord&color=5B5BD6&logoColor=white)](https://discord.gg/yFQpGDaV)
-![X](https://img.shields.io/twitter/follow/:FyloLabs)
+![Twitter](https://img.shields.io/twitter/follow/FyloLabs?style=social)
 
 </div>
 
