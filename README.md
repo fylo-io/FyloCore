@@ -2,6 +2,25 @@
 
 Advanced knowledge graph platform for collaborative research and AI-powered content analysis.
 
+<p align="center">
+    <img src="https://fylo.io/fylo_banner_light.png" alt="FyloLabs">
+</p>
+
+
+
+<div align="center">
+
+[![GitHub](https://img.shields.io/github/stars/fylo-io/FyloCore)](https://github.com/fylo-io/FyloCore)
+[![Documentation](https://img.shields.io/badge/Documentation-394e79?logo=readthedocs&logoColor=00B9FF)]([https://cocoindex.io/docs/getting_started/quickstart](https://api.fylogenesis.com/api-docs/))
+[![License](https://img.shields.io/badge/license-Apache%202.0-5B5BD6?logoColor=white)](https://opensource.org/licenses/Apache-2.0)
+[![Open Beta](https://img.shields.io/badge/Open%20Beta-fylogenesis.com-blueviolet?style=flat&logo=rocket)](https://fylogenesis.com)
+
+
+[![Discord](https://img.shields.io/discord/1314801574169673738?logo=discord&color=5B5BD6&logoColor=white)](https://discord.gg/yFQpGDaV)
+![X](https://img.shields.io/twitter/follow/:FyloLabs)
+
+</div>
+
 ## 🚀 Quick Start for Developers
 
 ### 1. Clone the Repository
