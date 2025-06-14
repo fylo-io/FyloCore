@@ -1,6 +1,12 @@
 # FyloCore
 
-Advanced knowledge graph platform for collaborative research and AI-powered content analysis.
+> **Real-time, collaborative knowledge-graph engine powering the next wave of open science and collective intelligence.**
+
+
+Fylo Core is the open-source heart of **Fylogenesis**—our mission to give researchers a platform that **connects ideas across disciplines, augments human insight with AI, and keeps collaboration genuinely live**.  
+
+We’re releasing the core so anyone can self-host, extend, and help shape a future where knowledge grows as a shared graph instead of siloed PDFs.
+
 
 <p align="center">
     <img src="https://fylo.io/fylo_banner_light.png" alt="FyloLabs">
@@ -14,12 +20,21 @@ Advanced knowledge graph platform for collaborative research and AI-powered cont
 [![Documentation](https://img.shields.io/badge/Documentation-394e79?logo=readthedocs&logoColor=00B9FF)]([https://cocoindex.io/docs/getting_started/quickstart](https://api.fylogenesis.com/api-docs/))
 [![License](https://img.shields.io/badge/license-Apache%202.0-5B5BD6?logoColor=white)](https://opensource.org/licenses/Apache-2.0)
 [![Open Beta](https://img.shields.io/badge/Open%20Beta-fylogenesis.com-blueviolet?style=flat&logo=rocket)](https://fylogenesis.com)
-
-
 [![Discord](https://img.shields.io/discord/1314801574169673738?logo=discord&color=5B5BD6&logoColor=white)](https://discord.gg/yFQpGDaV)
 ![Twitter](https://img.shields.io/twitter/follow/FyloLabs?style=social)
 
 </div>
+
+
+## ✨ Key capabilities
+
+* **Live collaboration** – multi-cursor editing, conflict-free merges, and chat built on Socket.IO  
+* **AI-assisted ingestion** – documents chunked, embedded, and summarised via Anthropic/OpenAI pipelines  
+* **Schema-aware graphs** – Scientific-discourse schema out of the box; bring your own JSON-Schema to extend  
+* **Batteries included** – Next.js UI, TypeScript API, PostgreSQL + pgvector, Docker & Helm charts  
+* **Open-core** – permissive Apache-2.0 license; enterprise add-ons (SSO, RBAC, analytics) stay separate
+
+  
 
 ## 🚀 Quick Start for Developers
 
